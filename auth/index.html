@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Email confirmed - Wattermelon</title>
 <meta name="robots" content="noindex">
@@ -57,12 +59,12 @@
 </style>
 </head>
 <body>
-<nav class="lang" aria-label="Language"><a href="/auth/" data-l="en" onclick="this.href += location.hash;" aria-current="true">EN</a><a href="/ru/auth/" data-l="ru" onclick="this.href += location.hash;">RU</a></nav>
+<nav class="lang" aria-label="Language"><a href="/auth/" data-l="en" aria-current="true">EN</a><a href="/ru/auth/" data-l="ru">RU</a></nav>
 
 
 <div class="logo"><img src="/logo-mark.svg" alt="" width="34" height="34" style="vertical-align:-9px;margin-right:9px"><b>Watt</b>ermelon</div>
 
-<main id="ok">
+<main id="ok" data-recovery-title="New password - Wattermelon" data-recovery-sub="Open Wattermelon on this iPhone to choose a new password." data-recovery-desktop="This link works on your iPhone only. In Wattermelon tap Forgot password again and open the new email on the phone.">
   <div class="art" aria-hidden="true">
     <svg viewBox="0 0 300 200">
       <g class="pop">
@@ -79,13 +81,13 @@
       </g>
     </svg>
   </div>
-  <h1>Email <span class="lime">confirmed</span></h1>
-  <p class="sub">Your account is ready. Head back to Wattermelon - your profile and rides are now saved in the cloud.</p>
+  <h1><span id="okWord" data-recovery="New">Email</span> <span class="lime" id="okAccent" data-recovery="password">confirmed</span></h1>
+  <p class="sub" id="okText">Your account is ready. Head back to Wattermelon - your profile and rides are now saved in the cloud.</p>
   <a class="btn" id="open" href="wattermelon://auth-callback">OPEN WATTERMELON</a>
   <p class="note" id="desktop" hidden>Open Wattermelon on your phone and sign in with this email.</p>
 </main>
 
-<main id="fail" class="err" hidden>
+<main id="fail" class="err" data-title="Link expired - Wattermelon" hidden>
   <div class="art" aria-hidden="true">
     <svg viewBox="0 0 300 200">
       <g class="pop">
@@ -101,24 +103,6 @@
   <a class="btn" href="wattermelon://auth-callback">OPEN WATTERMELON</a>
 </main>
 
-<script>
-  (function () {
-    var raw = (location.hash || "").replace(/^#/, "") || (location.search || "").replace(/^\?/, "");
-    var params = new URLSearchParams(raw);
-    var failed = params.get("error") || params.get("error_code");
-    if (failed) {
-      document.getElementById("ok").hidden = true;
-      document.getElementById("fail").hidden = false;
-      document.title = "Link expired - Wattermelon";
-    } else if (params.get("access_token")) {
-      // Ключи входа передаём в приложение - оно само войдёт в аккаунт.
-      document.getElementById("open").href = "wattermelon://auth-callback#" + raw;
-    }
-    // Ключи не оставляем в адресной строке.
-    if (raw) { history.replaceState(null, "", location.pathname); }
-    var mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (!mobile) { document.getElementById("desktop").hidden = false; }
-  })();
-</script>
+<script src="/auth/auth.js"></script>
 </body>
 </html>

@@ -2,6 +2,8 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Почта подтверждена - Wattermelon</title>
 <meta name="robots" content="noindex">
@@ -57,12 +59,12 @@
 </style>
 </head>
 <body>
-<nav class="lang" aria-label="Language"><a href="/auth/" data-l="en" onclick="this.href += location.hash;">EN</a><a href="/ru/auth/" data-l="ru" onclick="this.href += location.hash;" aria-current="true">RU</a></nav>
+<nav class="lang" aria-label="Language"><a href="/auth/" data-l="en">EN</a><a href="/ru/auth/" data-l="ru" aria-current="true">RU</a></nav>
 
 
 <div class="logo"><img src="/logo-mark.svg" alt="" width="34" height="34" style="vertical-align:-9px;margin-right:9px"><b>Watt</b>ermelon</div>
 
-<main id="ok">
+<main id="ok" data-recovery-title="Новый пароль - Wattermelon" data-recovery-sub="Открой Wattermelon на этом iPhone, чтобы выбрать новый пароль." data-recovery-desktop="Эта ссылка работает только на iPhone. В Wattermelon нажми «Забыл пароль» ещё раз и открой новое письмо на телефоне.">
   <div class="art" aria-hidden="true">
     <svg viewBox="0 0 300 200">
       <g class="pop">
@@ -79,13 +81,13 @@
       </g>
     </svg>
   </div>
-  <h1>Почта <span class="lime">подтверждена</span></h1>
-  <p class="sub">Аккаунт готов. Возвращайся в Wattermelon - профиль и заезды теперь сохраняются в облаке.</p>
+  <h1><span id="okWord" data-recovery="Новый">Почта</span> <span class="lime" id="okAccent" data-recovery="пароль">подтверждена</span></h1>
+  <p class="sub" id="okText">Аккаунт готов. Возвращайся в Wattermelon - профиль и заезды теперь сохраняются в облаке.</p>
   <a class="btn" id="open" href="wattermelon://auth-callback">ОТКРЫТЬ WATTERMELON</a>
   <p class="note" id="desktop" hidden>Открой Wattermelon на телефоне и войди с этой почтой.</p>
 </main>
 
-<main id="fail" class="err" hidden>
+<main id="fail" class="err" data-title="Ссылка устарела - Wattermelon" hidden>
   <div class="art" aria-hidden="true">
     <svg viewBox="0 0 300 200">
       <g class="pop">
@@ -101,24 +103,6 @@
   <a class="btn" href="wattermelon://auth-callback">ОТКРЫТЬ WATTERMELON</a>
 </main>
 
-<script>
-  (function () {
-    var raw = (location.hash || "").replace(/^#/, "") || (location.search || "").replace(/^\?/, "");
-    var params = new URLSearchParams(raw);
-    var failed = params.get("error") || params.get("error_code");
-    if (failed) {
-      document.getElementById("ok").hidden = true;
-      document.getElementById("fail").hidden = false;
-      document.title = "Ссылка устарела - Wattermelon";
-    } else if (params.get("access_token")) {
-      // Ключи входа передаём в приложение - оно само войдёт в аккаунт.
-      document.getElementById("open").href = "wattermelon://auth-callback#" + raw;
-    }
-    // Ключи не оставляем в адресной строке.
-    if (raw) { history.replaceState(null, "", location.pathname); }
-    var mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (!mobile) { document.getElementById("desktop").hidden = false; }
-  })();
-</script>
+<script src="/auth/auth.js"></script>
 </body>
 </html>
