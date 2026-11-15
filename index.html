@@ -331,7 +331,7 @@
           </form>
           <div id="beta-done" class="beta-done" hidden>
             <strong>You're on the list.</strong>
-            <span id="beta-done-text">We'll email your TestFlight invite when your spot opens.</span>
+            <span id="beta-done-text">Check your inbox for a confirmation. We'll email your TestFlight invite when your spot opens.</span>
           </div>
         </div>
       </div>
@@ -816,40 +816,33 @@
   }
 
   /* ---------- Beta request form ----------
-     BETA is null until the database part is live: the request then leaves as a ready-made email
-     to hello@wattermelon.com (nothing is pretended to be saved). When it is live, set:
-       const BETA = { url: 'https://<project>.supabase.co/rest/v1/rpc/request_beta', key: '<publishable key>' };
+     The request goes to a small server function in the Wattermelon Supabase project.
+     It saves the request and sends the confirmation email. No keys are needed here.
      ------------------------------------------ */
-  const BETA = null;
+  const BETA_URL = 'https://cswaebpagfaxjgefgbdw.supabase.co/functions/v1/beta-request';
   const form = $('#beta-form'), msg = $('#beta-msg'), done = $('#beta-done');
   form.addEventListener('submit', async e => {
     e.preventDefault();
-    const email = form.email.value.trim(), btn = form.querySelector('button'), rides = form.rides_with;
+    const email = form.email.value.trim(), btn = form.querySelector('button');
     const fail = t => { msg.textContent = t; msg.classList.add('err'); };
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { form.email.classList.add('bad'); form.email.focus(); return fail('Please enter a valid email.'); }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)) { form.email.classList.add('bad'); form.email.focus(); return fail('Please enter a valid email.'); }
     form.email.classList.remove('bad');
-    if (form.website.value) { form.hidden = true; done.hidden = false; return; }      // bots get a silent "ok"
-    if (!BETA) {
-      const body = 'Hi! I would like to join the Wattermelon beta.\n\nEmail: ' + email + (rides.value ? '\nI ride with: ' + rides.options[rides.selectedIndex].text : '');
-      const href = 'mailto:hello@wattermelon.com?subject=' + encodeURIComponent('Wattermelon beta request') + '&body=' + encodeURIComponent(body);
-      $('#beta-done strong').textContent = 'One last step.';
-      $('#beta-done-text').innerHTML = 'Send the email that just opened - that is your request. <a href="' + href + '">Open it again</a>';
-      form.hidden = true; done.hidden = false;
-      window.location.href = href;
-      return;
-    }
     btn.disabled = true; btn.textContent = 'Sending...';
     try {
-      const r = await fetch(BETA.url, {
+      const r = await fetch(BETA_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: BETA.key, Authorization: 'Bearer ' + BETA.key },
-        body: JSON.stringify({ p_email: email, p_rides_with: rides.value || null })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, rides_with: form.rides_with.value || null, website: form.website.value })
       });
-      if (!r.ok) throw new Error(r.status);
+      if (r.status === 429) throw new Error('busy');
+      if (r.status === 400) throw new Error('email');
+      if (!r.ok) throw new Error('server');
       form.hidden = true; done.hidden = false;
     } catch (err) {
       btn.disabled = false; btn.textContent = 'Request a spot';
-      fail('Something went wrong. Please try again or write to hello@wattermelon.com.');
+      fail(err.message === 'busy' ? 'Too many requests right now. Please try again in an hour.'
+        : err.message === 'email' ? 'Please check the email address.'
+        : 'Something went wrong. Please try again or write to hello@wattermelon.com.');
     }
   });
 
