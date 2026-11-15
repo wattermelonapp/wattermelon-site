@@ -1,183 +1,872 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<title>Wattermelon - Fuel for your watts</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Wattermelon - the melon is ripening</title>
-<meta name="description" content="Wattermelon, an app for cyclists, is coming soon. While you wait, crank out some watts.">
+<meta name="description" content="Wattermelon is a cycling app for iPhone: training, fuel and people to ride with. It turns every ride into real food. Join the beta.">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" href="/logo-mark.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<meta property="og:title" content="Wattermelon">
-<meta property="og:description" content="An app for cyclists: training, fuel and people to ride with.">
+<link rel="canonical" href="https://wattermelon.com/">
+<meta property="og:title" content="Wattermelon - Fuel for your watts">
+<meta property="og:description" content="A cycling app for iPhone: training, fuel and people to ride with.">
+<meta property="og:url" content="https://wattermelon.com/">
+<meta property="og:type" content="website">
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://wattermelon.com/og.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#0b0d0a">
+<meta name="theme-color" content="#0B0D0A">
+<link rel="preload" href="/fonts/inter-tight-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style>
-  :root { --bg:#0b0d0a; --text:#eef3e8; --muted:#8f9a87; --lime:#b6f23a; --flesh:#ff4d5e; --flesh-dark:#2a1517; }
-  * { box-sizing:border-box; }
-  html,body { height:100%; }
-  body {
-    margin:0; background:var(--bg); color:var(--text);
-    font:17px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    padding:32px 20px; text-align:center; -webkit-tap-highlight-color:transparent;
-    background-image:radial-gradient(ellipse at 50% 60%, rgba(182,242,58,.07), transparent 60%);
+  @font-face { font-family: "Inter Tight"; src: url("/fonts/inter-tight-latin.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+  :root {
+    --bg: #0B0D0A;
+    --lime: #C7FF0D;
+    --flesh: #FF4D5E;
+    --rind: #E9F5D6;
+    --text: #F4F7EE;
+    --soft: #A9B0A0;
+    --mute: #6F7667;
   }
-  .logo { font-weight:800; font-size:22px; letter-spacing:-.02em; margin-bottom:28px; }
-  .logo b { color:var(--lime); }
-  h1 { white-space:nowrap; font-size:min(68px, 8.4vw); line-height:1.02; letter-spacing:-.035em; margin:0 0 14px; }
-  .sub { color:var(--muted); max-width:460px; margin:0 auto 8px; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter Tight", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
 
-  .gauge { width:min(420px,92vw); margin:18px auto 0; cursor:pointer; touch-action:manipulation; user-select:none; -webkit-user-select:none; }
-  .gauge svg { width:100%; display:block; overflow:visible; }
-  .gauge:active .slice { transform:scale(.985); }
-  .slice { transform-origin:200px 200px; transition:transform .08s; }
-  #needle { transform-origin:200px 200px; transform:rotate(-90deg); }
+  /* Top bar */
+  #page-progress { position: fixed; top: 0; left: 0; width: 100%; height: 3px; background: rgba(255,255,255,.08); z-index: 100; }
+  #page-progress .bar { width: 0%; height: 100%; background: var(--lime); }
+  header.top {
+    position: fixed; top: 3px; left: 0; right: 0; z-index: 90;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px clamp(16px, 4vw, 40px);
+    pointer-events: none;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; letter-spacing: -.02em; }
+  .brand canvas { width: 30px; height: 30px; }
+  .brand b { color: var(--lime); font-weight: 800; }
+  .pill {
+    font-size: 12.5px; font-weight: 600; color: var(--soft);
+    padding: 7px 13px; border: 1px solid rgba(255,255,255,.14); border-radius: 999px;
+    background: rgba(11,13,10,.5); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  }
 
-  .watts { font-variant-numeric:tabular-nums; font-weight:800; font-size:56px; letter-spacing:-.03em; line-height:1; margin-top:-6px; }
-  .watts small { font-size:22px; color:var(--muted); font-weight:600; margin-left:4px; }
-  .zone { color:var(--lime); font-weight:600; min-height:26px; margin-top:6px; }
-  .hint { color:var(--muted); font-size:14px; margin-top:4px; }
-  .peak { color:var(--muted); font-size:14px; min-height:21px; }
-  .msg { min-height:48px; max-width:420px; margin:14px auto 0; font-weight:600; opacity:0; transition:opacity .4s; }
-  .msg.on { opacity:1; }
+  /* Scroll track + sticky stage */
+  #scrolltrack { position: relative; height: 1585vh; }
+  #stage { position: sticky; top: 0; height: 100vh; height: 100svh; width: 100%; overflow: hidden; }
+  .scene { position: absolute; inset: 0; }
+  #seq { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .overlay-gradient {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, rgba(11,13,10,0) 46%, rgba(11,13,10,.86) 68%, rgba(11,13,10,.97) 100%);
+  }
+  .chapters { position: absolute; inset: 0; pointer-events: none; }
+  .chapter {
+    position: absolute; left: 50%; bottom: max(6vh, 28px);
+    width: min(760px, calc(100% - 40px));
+    transform: translate(-50%, 18px);
+    text-align: center;
+    opacity: 0; visibility: hidden;
+    transition: opacity .45s ease, transform .45s ease, visibility 0s linear .45s;
+  }
+  .chapter.visible { opacity: 1; visibility: visible; transform: translate(-50%, 0); pointer-events: auto; transition-delay: 0s; }
+  .eyebrow { display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--lime); margin-bottom: 14px; }
+  .chapter h1, .chapter h2 {
+    margin: 0 0 14px; font-weight: 800; letter-spacing: -.035em; line-height: 1.02;
+    font-size: clamp(34px, 6.2vw, 72px); text-wrap: balance;
+  }
+  .chapter h1 em, .chapter h2 em { font-style: normal; color: var(--lime); }
+  .chapter p { margin: 0 auto; max-width: 600px; font-size: clamp(16px, 1.5vw, 20px); line-height: 1.5; color: var(--soft); font-weight: 500; text-wrap: pretty; }
+  .chapter p strong { color: var(--text); font-weight: 600; }
+  .steps { list-style: none; margin: 0 auto; padding: 0; max-width: 600px; text-align: left; display: grid; gap: 10px; counter-reset: s; }
+  .steps li { counter-increment: s; display: grid; grid-template-columns: 30px 1fr; gap: 10px; font-size: clamp(15px, 1.4vw, 18px); line-height: 1.4; color: var(--soft); font-weight: 500; }
+  .steps li::before { content: counter(s); width: 26px; height: 26px; border-radius: 50%; background: var(--lime); color: var(--bg); font-weight: 800; font-size: 14px; display: grid; place-items: center; }
+  .steps strong { color: var(--text); font-weight: 600; }
+  .hint { margin-top: 22px; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--mute); font-weight: 600; }
+  .hint::after { content: ""; display: block; width: 1px; height: 26px; margin: 10px auto 0; background: linear-gradient(var(--lime), transparent); }
+    .btn {
+    display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 28px;
+    border-radius: 999px; font-weight: 800; font-size: 17px; text-decoration: none; letter-spacing: -.01em;
+    background: var(--lime); color: var(--bg); transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 34px rgba(199,255,13,.28); }
+  .btn:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+  .beta { margin: 22px auto 0; max-width: 640px; }
+  .beta .fields { display: grid; grid-template-columns: 1.3fr 1fr auto; gap: 10px; }
+  .beta input, .beta select {
+    min-height: 52px; width: 100%; padding: 0 18px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.06); color: var(--text);
+    font: 600 16px "Inter Tight", system-ui, sans-serif; outline: none; -webkit-appearance: none; appearance: none;
+  }
+  .beta select { color: var(--soft); background-image: linear-gradient(45deg, transparent 50%, var(--soft) 50%), linear-gradient(135deg, var(--soft) 50%, transparent 50%); background-position: calc(100% - 22px) 23px, calc(100% - 16px) 23px; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 38px; }
+  .beta select option { color: #111; }
+  .beta input::placeholder { color: var(--mute); }
+  .beta input:focus-visible, .beta select:focus-visible { border-color: var(--lime); box-shadow: 0 0 0 3px rgba(199,255,13,.18); }
+  .beta input.bad { border-color: var(--flesh); }
+  .beta .btn { border: 0; cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .beta .btn[disabled] { opacity: .6; cursor: default; transform: none; box-shadow: none; }
+  .beta .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .beta .fine a { color: var(--soft); }
+  .beta .fine.err { color: var(--flesh) !important; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .beta-done { margin: 22px auto 0; max-width: 520px; padding: 18px 22px; border-radius: 20px; border: 1px solid rgba(199,255,13,.4); background: rgba(199,255,13,.08); display: grid; gap: 4px; }
+  .beta-done[hidden] { display: none; }
+  .beta-done strong { color: var(--lime); font-size: 20px; font-weight: 800; }
+  .beta-done a { color: var(--lime); }
+  .beta-done span { color: var(--soft); font-size: 15px; font-weight: 500; }
+  .beta-done .test-note { color: var(--mute); font-size: 12.5px; margin-top: 4px; }
+  .beta-done .test-note[hidden] { display: none; }
+  .fine { margin-top: 14px !important; font-size: 13px !important; color: var(--mute) !important; }
 
-  footer { margin-top:34px; color:var(--muted); font-size:14px; }
-  footer a { color:var(--muted); }
-  /* Одинаковая высота блоков на обоих языках: при переключении ничего не прыгает. */
-  body { justify-content:flex-start; padding-top:max(56px, 8vh); }
-  .sub { min-height:4.5em; }
-  .hint { min-height:3em; }
-  footer { margin-top:auto; padding-top:34px; }
-</style>
-<style>
-  .lang { position:fixed; top:max(14px, env(safe-area-inset-top)); right:max(14px, env(safe-area-inset-right)); z-index:50;
-    display:flex; gap:2px; padding:3px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08);
-    font:700 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; letter-spacing:.08em; }
-  .lang a { color:#8f9a87; text-decoration:none; padding:6px 9px; border-radius:999px; }
-  .lang a[aria-current] { background:#c7ff0d; color:#0b0d0a; }
-  .lang a:not([aria-current]):hover { color:#eef3e8; }
-  @media (max-width:560px) { body { padding-top:68px !important; } }
+  footer.site { padding: 40px clamp(16px, 4vw, 40px) 48px; border-top: 1px solid rgba(255,255,255,.08); display: flex; flex-wrap: wrap; gap: 14px 28px; justify-content: center; font-size: 14px; color: var(--mute); font-weight: 500; }
+  footer.site a { text-decoration: none; color: var(--soft); }
+  footer.site a:hover { color: var(--lime); }
+
+  /* Loader */
+  #loader { position: fixed; inset: 0; z-index: 200; background: var(--bg); display: grid; place-items: center; transition: opacity .4s ease; }
+  #loader.done { opacity: 0; pointer-events: none; }
+  .loader-content { text-align: center; color: var(--soft); font-size: 14px; font-weight: 600; }
+  .loader-content canvas { width: 64px; height: 64px; margin-bottom: 16px; }
+  .progress { width: 180px; height: 3px; background: rgba(255,255,255,.1); border-radius: 3px; overflow: hidden; margin: 14px auto 0; }
+  .progress .bar { width: 0%; height: 100%; background: var(--lime); transition: width .2s ease; }
+
+  @media (max-width: 600px) {
+    .chapter { bottom: max(4.5vh, 22px); }
+    .btn { width: 100%; }
+    .beta .fields { grid-template-columns: 1fr; }
+  }
+
+  /* Reduced motion: plain long page, no scroll-driven canvas */
+  body.reduced #scrolltrack { height: auto; }
+  body.reduced #stage { position: static; height: auto; overflow: visible; }
+  body.reduced .scene { position: relative; height: 62vh; }
+  body.reduced .overlay-gradient { background: linear-gradient(180deg, rgba(11,13,10,0) 70%, var(--bg) 100%); }
+  body.reduced .chapters { position: static; padding: 24px 0 40px; }
+  body.reduced .chapter { position: static; transform: none; opacity: 1; visibility: visible; margin: 0 auto 72px; pointer-events: auto; transition: none; }
+  body.reduced .hint, body.reduced #page-progress { display: none; }
+
+  /* v2: richer chapters */
+  .chapter { --t: 1; }
+  .chapter .time { color: var(--text); }
+  .meals { list-style: none; margin: 0 auto; padding: 0; max-width: 620px; display: grid; gap: 8px; text-align: left; }
+  .meals li {
+    --a: clamp(0, calc(var(--t) * 3 - var(--i)), 1);
+    opacity: var(--a); transform: translateX(calc((1 - var(--a)) * 40px));
+    display: grid; grid-template-columns: 96px 1fr auto; gap: 12px; align-items: baseline;
+    padding: 11px 16px; border-radius: 14px; background: rgba(11,13,10,.06); border: 1px solid rgba(11,13,10,.12);
+    font-size: clamp(14px, 1.3vw, 16px); font-weight: 500;
+  }
+  .meals b { font-weight: 800; }
+  .meals .kc { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  body:not(.reduced) .chapter.light { color: #0B0D0A; }
+  body:not(.reduced) .chapter.light .eyebrow { color: #4E6A00; }
+  body:not(.reduced) .chapter.light h2 em { color: #E0263C; }
+  body:not(.reduced) .chapter.light .meals span { color: #3C4337; }
+  body.reduced .meals li { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.12); }
+  body.reduced .meals span { color: var(--soft); }
+  .now { font-size: 14px !important; font-variant-numeric: tabular-nums; margin-bottom: 14px !important; }
+  .levers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 620px; margin: 0 auto; text-align: left; }
+  .lever { border: 1px solid rgba(255,255,255,.14); border-radius: 16px; padding: 14px 16px; background: rgba(22,26,19,.82); min-width: 0; }
+  .lever .k { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--mute); }
+  .lever h3 { margin: 4px 0 10px; font-size: clamp(18px, 2vw, 24px); font-weight: 800; letter-spacing: -.02em; }
+  .lever .bar { height: 8px; border-radius: 99px; background: rgba(255,255,255,.12); overflow: hidden; }
+  .lever .bar i { display: block; height: 100%; background: var(--lime); transform-origin: 0 50%; transform: scaleX(var(--t)); }
+  .lever.weight .bar i { background: var(--flesh); }
+  .lever .row { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--soft); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .lever .res { margin-top: 8px; font-size: clamp(24px, 2.8vw, 34px); font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+  .lever .res small { font-size: 12px; color: var(--mute); font-weight: 600; margin-left: 4px; }
+  header.top .brand, header.top .pill { transition: color .25s ease, border-color .25s ease, background .25s ease; }
+  body.on-light header.top .brand { color: #0B0D0A; }
+  body.on-light header.top .brand b { color: #4E6A00; }
+  body.on-light header.top .pill { color: #3C4337; border-color: rgba(11,13,10,.2); background: rgba(238,243,224,.6); }
+  .pill.cta { pointer-events: auto; text-decoration: none; color: var(--lime); border-color: rgba(199,255,13,.5); min-height: 44px; display: inline-flex; align-items: center; padding: 0 16px; font-size: 14px; transition: opacity .25s ease, color .25s ease, border-color .25s ease, background .25s ease; }
+  .pill.cta:hover { background: var(--lime); color: var(--bg); }
+  .pill.cta:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+  body.at-cta .pill.cta { opacity: 0; pointer-events: none; }
+  body.on-light header.top .pill.cta { color: #0B0D0A; border-color: rgba(11,13,10,.45); }
+  @media (max-width: 600px) {
+    .meals li { grid-template-columns: 1fr auto; padding: 9px 14px; }
+    .meals li span:not(.kc) { grid-column: 1 / -1; grid-row: 2; font-size: 13px; }
+    .lever { padding: 11px 12px; }
+  }
 </style>
 </head>
 <body>
-<nav class="lang" aria-label="Language"><a href="/" data-l="en" onclick="this.href += location.hash;" aria-current="true">EN</a><a href="/ru/" data-l="ru" onclick="this.href += location.hash;">RU</a></nav>
 
-
-<div class="logo"><img src="/logo-mark.svg" alt="" width="34" height="34" style="vertical-align:-9px;margin-right:9px"><b>Watt</b>ermelon</div>
-<h1>The melon is ripening.</h1>
-<p class="sub">An app for cyclists is coming soon: training, fuel and people to ride with. While you wait, crank out some watts.</p>
-
-<div class="gauge" id="gauge" role="button" tabindex="0" aria-label="Tap to pedal">
-  <svg viewBox="0 0 400 215" aria-hidden="true">
-    <g class="slice">
-      <!-- корка -->
-      <path d="M 18 200 A 182 182 0 0 1 382 200" fill="none" stroke="var(--lime)" stroke-width="14" stroke-linecap="round"/>
-      <path d="M 29 200 A 171 171 0 0 1 371 200" fill="none" stroke="#e9f5d6" stroke-opacity=".22" stroke-width="6"/>
-      <!-- мякоть: тёмная основа и спелая часть -->
-      <path d="M 61 200 A 139 139 0 0 1 339 200" fill="none" stroke="var(--flesh-dark)" stroke-width="58"/>
-      <path id="ripe" d="M 61 200 A 139 139 0 0 1 339 200" fill="none" stroke="var(--flesh)" stroke-width="58" pathLength="100" stroke-dasharray="0 100"/>
-      <!-- косточки = деления шкалы -->
-      <g id="seeds" fill="#0b0d0a"></g>
-      <!-- срез -->
-      <line x1="10" y1="200" x2="390" y2="200" stroke="var(--lime)" stroke-width="3" stroke-linecap="round"/>
-    </g>
-    <g id="needle">
-      <line x1="200" y1="200" x2="200" y2="52" stroke="var(--text)" stroke-width="4" stroke-linecap="round"/>
-    </g>
-    <circle cx="200" cy="200" r="11" fill="var(--text)"/>
-    <circle cx="200" cy="200" r="4" fill="var(--bg)"/>
-  </svg>
+<div id="loader" role="status" aria-live="polite">
+  <div class="loader-content">
+    <canvas id="loader-logo" width="128" height="128" aria-hidden="true"></canvas>
+    <div>Warming up the legs...</div>
+    <div class="progress"><div id="progressbar" class="bar"></div></div>
+  </div>
 </div>
 
-<div class="watts"><span id="w">0</span><small>W</small></div>
-<div class="zone" id="zone">Unripe. Pedal!</div>
-<div class="hint" id="hint">Tap the melon (or press space). The faster you tap, the riper it gets.</div>
-<div class="peak" id="peak"></div>
-<div class="msg" id="msg"></div>
+<div id="page-progress" aria-hidden="true"><div class="bar"></div></div>
 
-<footer>© 2026 Wattermelon · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="mailto:hello@wattermelon.com">hello@wattermelon.com</a></footer>
+<header class="top">
+  <div class="brand"><canvas id="brand-logo" width="60" height="60" aria-hidden="true"></canvas><span><b>Watt</b>ermelon</span></div>
+  <a class="pill cta" id="skip" href="#beta-form">Join the beta</a>
+</header>
+
+<main>
+  <section id="scrolltrack" aria-label="Wattermelon story">
+    <div id="stage">
+      <div class="scene" aria-hidden="true">
+        <canvas id="seq"></canvas>
+        <div class="overlay-gradient"></div>
+      </div>
+
+      <div class="chapters">
+        <div class="chapter" data-start="0.00" data-end="0.06">
+          <span class="eyebrow">Cycling app for iPhone</span>
+          <h1>Fuel for your <em>watts.</em></h1>
+          <p>Training, fuel and people to ride with - in one app.</p>
+          <div class="hint">Scroll to ride</div>
+        </div>
+
+        <div class="chapter" data-start="0.075" data-end="0.15">
+          <span class="eyebrow">The problem</span>
+          <h2>2,840 kcal. And that means what?</h2>
+          <p>Your bike computer hands you a number after every ride. Nobody eats numbers.</p>
+        </div>
+
+        <div class="chapter" data-start="0.165" data-end="0.33">
+          <span class="eyebrow"><span class="time">06:40</span> · Morning ride</span>
+          <h2>Every pedal stroke is a <em>number.</em></h2>
+          <p>Wattermelon reads the ride from Garmin, Apple Health, intervals.icu or a FIT file.</p>
+        </div>
+
+        <div class="chapter" data-start="0.34" data-end="0.42">
+          <span class="eyebrow"><span class="time">08:45</span> · After the ride</span>
+          <h2>Today you burned <em>4 croissants.</em></h2>
+          <p>Kilocalories mean little after a morning in the saddle. Wattermelon shows every ride in food you know: 1,080 kcal ride, 270 kcal per croissant.</p>
+        </div>
+
+        <div class="chapter" data-start="0.435" data-end="0.50">
+          <span class="eyebrow">Real numbers</span>
+          <h2>One season. <em>107 croissants.</em></h2>
+          <p>A real 2026 season counted in the app: 35 rides, 1,161 km, 28,929 kcal.</p>
+        </div>
+
+        <div class="chapter light" data-start="0.54" data-end="0.62" data-anim="fuel">
+          <span class="eyebrow">Today · Fuel tab</span>
+          <h2>Your day refuels around your <em>ride.</em></h2>
+          <ul class="meals">
+            <li style="--i:0"><b>Breakfast</b><span>Oats with banana, honey and Greek yogurt</span><span class="kc">1,040 kcal</span></li>
+            <li style="--i:1"><b>Lunch</b><span>Rice bowl with chicken, avocado and edamame</span><span class="kc">1,280 kcal</span></li>
+            <li style="--i:2"><b>Dinner</b><span>Pasta with salmon and spinach</span><span class="kc">1,060 kcal</span></li>
+          </ul>
+        </div>
+
+        <div class="chapter" data-start="0.665" data-end="0.78">
+          <span class="eyebrow"><span class="time">Saturday</span> · Ride together</span>
+          <h2>Find a wheel within <em>20 km.</em></h2>
+          <p>Post a ride, pick a pace and agree on a meeting point. <strong>Calm</strong> - up to 25 km/h. <strong>Advanced</strong> - around 28. <strong>Sporty</strong> - 30+. Only your area is shown - never your exact location. 18+.</p>
+        </div>
+
+        <div class="chapter" data-start="0.795" data-end="0.90" data-anim="levers">
+          <span class="eyebrow"><span class="time">Next weeks</span> · Growth</span>
+          <h2>Two roads to <em>4 W/kg.</em></h2>
+          <p class="now">Now <strong>3.85 W/kg</strong> · FTP 308 W · 80 kg</p>
+          <div class="levers">
+            <div class="lever">
+              <span class="k">Power</span>
+              <h3>Add 12 W</h3>
+              <div class="bar"><i></i></div>
+              <div class="row"><span>308 W</span><span id="valB">320 W</span></div>
+              <div class="res"><span id="resB">4.00</span><small>W/kg</small></div>
+            </div>
+            <div class="lever weight">
+              <span class="k">Weight</span>
+              <h3>Lose 3 kg</h3>
+              <div class="bar"><i></i></div>
+              <div class="row"><span>80.0 kg</span><span id="valA">77.0 kg</span></div>
+              <div class="res"><span id="resA">4.00</span><small>W/kg</small></div>
+            </div>
+          </div>
+          <p class="fine">A guide, not a diet: never below a healthy weight, no deficit on your hardest days.</p>
+        </div>
+
+        <div class="chapter" data-direct="1" data-start="0.05" data-end="0.9">
+          <span class="eyebrow">What's inside</span>
+          <h2>One wheel, six things.</h2>
+          <p>Your ride in food. Fuel and recipes for the day. Training plans. Riders at your pace. A share card for Instagram. And a W/kg goal with two levers.</p>
+        </div>
+
+        <div class="chapter" data-start="0.915" data-end="1.00">
+          <span class="eyebrow">Beta on iOS</span>
+          <h2>Free during the <em>beta.</em></h2>
+          <p>We're looking for 20 riders on iPhone. Leave your email - we'll send the TestFlight invite.</p>
+          <form id="beta-form" class="beta" novalidate>
+            <div class="fields">
+              <label class="sr" for="beta-email">Email</label>
+              <input id="beta-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@email.com" required maxlength="254">
+              <label class="sr" for="beta-rides">I ride with</label>
+              <select id="beta-rides" name="rides_with">
+                <option value="">I ride with...</option>
+                <option value="garmin">Garmin</option>
+                <option value="zwift">Zwift</option>
+                <option value="intervals">intervals.icu</option>
+                <option value="apple_health">Apple Watch / Health</option>
+                <option value="other">Something else</option>
+              </select>
+              <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+              <button class="btn" type="submit">Request a spot</button>
+            </div>
+            <p class="fine" id="beta-msg" role="status" aria-live="polite">We only use your email for the beta invite. <a href="https://wattermelon.com/privacy/">Privacy</a> · <a href="https://www.instagram.com/wattermelon.app/" target="_blank" rel="noopener">Instagram</a></p>
+          </form>
+          <div id="beta-done" class="beta-done" hidden>
+            <strong>You're on the list.</strong>
+            <span id="beta-done-text">We'll email your TestFlight invite when your spot opens.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <span>© 2026 Wattermelon</span>
+  <a href="mailto:hello@wattermelon.com">hello@wattermelon.com</a>
+  <a href="https://www.instagram.com/wattermelon.app/" target="_blank" rel="noopener">@wattermelon.app</a>
+  <a href="https://wattermelon.com/privacy/">Privacy</a>
+  <a href="https://wattermelon.com/terms/">Terms</a>
+</footer>
 
 <script>
-(function () {
-  var MAX = 500;
-  var watts = 0, peak = 0, ripeShown = false, holding = null;
-  var el = {
-    w: document.getElementById('w'), zone: document.getElementById('zone'),
-    peak: document.getElementById('peak'), msg: document.getElementById('msg'),
-    hint: document.getElementById('hint'), ripe: document.getElementById('ripe'),
-    needle: document.getElementById('needle'), gauge: document.getElementById('gauge'),
-    seeds: document.getElementById('seeds')
+(() => {
+  const $ = s => document.querySelector(s);
+  const scene = $('.scene'), canvas = $('#seq'), ctx = canvas.getContext('2d'), overlay = $('.overlay-gradient');
+  const C = { bg: '#0B0D0A', lime: '#C7FF0D', flesh: '#FF4D5E', rind: '#E9F5D6', text: '#F4F7EE', soft: '#9BA391', light: '#EEF3E0' };
+  let W = 0, H = 0, target = 0, cur = 0, drawn = -1;
+
+  const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const ease = t => t * t * (3 - 2 * t);
+  const easeOut = t => 1 - (1 - t) * (1 - t);
+  const backOut = t => { const c = 1.9; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+  const bounce = t => { const n = 7.5625, d = 2.75; if (t < 1 / d) return n * t * t; if (t < 2 / d) return n * (t -= 1.5 / d) * t + .75; if (t < 2.5 / d) return n * (t -= 2.25 / d) * t + .9375; return n * (t -= 2.625 / d) * t + .984375; };
+  // the ride: one steady speed for 80% of the way, then a smooth brake to a stop - never a speed-up
+  const rideEase = t => { const t0 = .8, v = 1 / (t0 + (1 - t0) / 2); return t < t0 ? v * t : v * (t0 + (t - t0) - (t - t0) * (t - t0) / (2 * (1 - t0))); };
+  const seg = (p, a, b) => clamp((p - a) / (b - a));
+  const win = (p, a, b, f = .015) => ease(seg(p, a, a + f)) * (1 - ease(seg(p, b - f, b)));
+  const font = (px, wt = 800) => `${wt} ${px}px "Inter Tight",system-ui,-apple-system,"Segoe UI",sans-serif`;
+  const num = n => Math.round(n).toLocaleString('en-US');
+
+  function layer(a, fn) { if (a <= .004) return; ctx.save(); ctx.globalAlpha *= a; fn(); ctx.restore(); }
+  function text(s, x, y, px, color, wt = 800, align = 'center') {
+    ctx.font = font(px, wt); ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.fillText(s, x, y);
+  }
+  function rrect(x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+  function line(pts) { ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke(); }
+  function poly(pts, fill) { ctx.fillStyle = fill; ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath(); ctx.fill(); }
+  function dot(c, r, fill) { ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(c[0], c[1], r, 0, 7); ctx.fill(); }
+
+  /* ---------- Brand wheel (geometry of brand/wattermelon-mark.svg); yaw fakes the 3D turn ---------- */
+  function wheel(c, x, y, r, rot, yaw = 0) {
+    const sx = Math.cos(yaw);
+    if (yaw > .01) {           // rim thickness, seen from the side
+      c.save(); c.translate(x + r * .2 * Math.sin(yaw), y); c.scale(sx, 1);
+      c.fillStyle = '#8FB800'; c.beginPath(); c.arc(0, 0, r, 0, 7); c.fill(); c.restore();
+      c.fillStyle = '#A9D600'; c.fillRect(x, y - r, r * .2 * Math.sin(yaw), 0);
+    }
+    c.save(); c.translate(x, y); c.scale(sx, 1); c.rotate(rot); c.scale(r / 388, r / 388);
+    c.fillStyle = C.lime; c.beginPath(); c.arc(0, 0, 388, 0, 7); c.fill();
+    c.fillStyle = C.rind; c.beginPath(); c.arc(0, 0, 330, 0, 7); c.fill();
+    const g = c.createRadialGradient(0, -25, 0, 0, -25, 370);
+    g.addColorStop(0, '#FF6271'); g.addColorStop(1, '#F23D50');
+    c.fillStyle = g; c.beginPath(); c.arc(0, 0, 308, 0, 7); c.fill();
+    c.fillStyle = C.bg;
+    const seed = (a, d, s) => {
+      c.save(); c.rotate(a); c.translate(0, -d); c.scale(s, s);
+      c.beginPath(); c.moveTo(0, -30); c.bezierCurveTo(16, -20, 18, 10, 0, 30); c.bezierCurveTo(-18, 10, -16, -20, 0, -30); c.fill();
+      c.restore();
+    };
+    for (let i = 0; i < 10; i++) seed(i * Math.PI / 5, 203.3, 1.18);
+    for (let i = 0; i < 5; i++) seed(Math.PI / 5 + i * 2 * Math.PI / 5, 114, .92);
+    c.beginPath(); c.arc(0, 0, 48, 0, 7); c.fill();
+    c.fillStyle = C.lime; c.beginPath(); c.arc(0, 0, 19, 0, 7); c.fill();
+    c.restore();
+  }
+
+  /* ---------- Croissant "Flat" from the pilot: seven layers, two warm tones ---------- */
+  const CR_W = [
+    new Path2D('M30.8 138.5 L30.1 135.6 L29.5 132.6 L29.1 129.6 L28.9 126.6 L28.8 123.6 L28.9 120.6 L29.2 117.6 L29.6 114.5 L30.2 111.5 L30.9 108.5 L49.2 118.4 L47.4 120.0 L45.7 121.6 L44.0 123.3 L42.5 125.2 L41.0 127.2 L39.5 129.3 L38.2 131.5 L37.0 133.8 L35.8 136.2 L34.8 138.8 Z'),
+    new Path2D('M30.9 108.5 L31.9 105.5 L33.0 102.5 L34.3 99.6 L35.7 96.7 L37.4 93.9 L39.2 91.1 L41.1 88.4 L43.3 85.7 L45.6 83.2 L48.0 80.7 L69.2 108.9 L67.1 109.5 L65.0 110.1 L62.9 110.8 L60.9 111.6 L58.8 112.4 L56.8 113.4 L54.9 114.5 L52.9 115.7 L51.0 117.0 L49.2 118.4 Z'),
+    new Path2D('M48.0 80.7 L50.6 78.3 L53.4 76.0 L56.3 73.8 L59.4 71.7 L62.6 69.8 L65.9 67.9 L69.3 66.2 L72.8 64.7 L76.5 63.3 L80.2 62.0 L90.2 107.6 L88.1 107.5 L86.1 107.5 L84.0 107.4 L81.9 107.4 L79.8 107.5 L77.7 107.7 L75.6 107.9 L73.5 108.2 L71.4 108.5 L69.2 108.9 Z'),
+    new Path2D('M80.2 62.0 L84.1 61.0 L88.0 60.0 L91.9 59.3 L95.9 58.8 L100.0 58.5 L104.1 58.8 L108.1 59.3 L112.0 60.0 L115.9 61.0 L119.8 62.0 L109.8 107.6 L107.8 107.8 L105.8 108.0 L103.9 108.2 L101.9 108.4 L100.0 108.5 L98.1 108.4 L96.1 108.2 L94.2 108.0 L92.2 107.8 L90.2 107.6 Z')
+  ];
+  const CR_HL = [[32.8, 124.8, 3.5, 1, -73.7], [44.4, 100, 7.9, 2.3, -49.1], [68.3, 82.2, 11.6, 3.3, -24.6], [100, 75, 14, 4, 0], [131.7, 82.2, 11.6, 3.3, 24.6], [155.6, 100, 7.9, 2.3, 49.1], [167.2, 124.8, 3.5, 1, 73.7]];
+  // x, y = centre; s = width in px; detail adds shadow and highlights
+  function croissant(x, y, s, detail, half) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(s / 176, s / 176); ctx.translate(-100, -99);
+    if (half) { ctx.beginPath(); ctx.rect(0, 0, 100, 200); ctx.clip(); }
+    if (detail) { ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.beginPath(); ctx.ellipse(100, 146, 74, 6, 0, 0, 7); ctx.fill(); }
+    const A = '#EBA64E', B = '#D2852F';
+    ctx.fillStyle = A; ctx.fill(CR_W[0]); ctx.fillStyle = B; ctx.fill(CR_W[1]); ctx.fillStyle = A; ctx.fill(CR_W[2]); ctx.fillStyle = B; ctx.fill(CR_W[3]);
+    ctx.save(); ctx.translate(200, 0); ctx.scale(-1, 1);
+    ctx.fillStyle = A; ctx.fill(CR_W[0]); ctx.fillStyle = B; ctx.fill(CR_W[1]); ctx.fillStyle = A; ctx.fill(CR_W[2]);
+    ctx.restore();
+    if (detail) {
+      ctx.fillStyle = 'rgba(248,207,134,.85)';
+      CR_HL.forEach(e => { ctx.beginPath(); ctx.ellipse(e[0], e[1], e[2], e[3], e[4] * Math.PI / 180, 0, 7); ctx.fill(); });
+    }
+    ctx.restore();
+  }
+
+  /* ---------- Bike and rider "Kit" from the pilot (rear hub at 105,190, wheel r 56) ---------- */
+  // v3: wheelbase 172 instead of 210 (close to a real road bike), rider sits a little more upright to match
+  const HIP = [158, 90], SH = [234, 50], HEAD = [260, 33], EL = [247, 78], HAND = [266, 102], BB = [180, 192], FH = [277, 190], CRK = 30, L1 = 70, L2 = 66;
+  const FRAME = [
+    [new Path2D('M105 190 L180 192 L164 112 Z M164 112 L250 106 L180 192 M250 106 L255 128'), 6],
+    [new Path2D('M255 128 Q262 160 277 190'), 6],
+    [new Path2D('M164 112 L158 96'), 5],
+    [new Path2D('M250 106 L262 100 Q278 100 276 113 Q274 125 264 124'), 5]
+  ];
+  const SADDLE = new Path2D('M140 94 Q158 88 178 93 L176 97 Q158 94 142 98 Z');
+  const hx = HEAD[0], hy = HEAD[1];
+  const HELMET = new Path2D(`M${hx - 14} ${hy + 1} Q${hx - 13} ${hy - 15} ${hx + 3} ${hy - 15} Q${hx + 16} ${hy - 13} ${hx + 15} ${hy} Q${hx} ${hy - 4} ${hx - 14} ${hy + 1} Z M${hx - 14} ${hy + 1} L${hx - 24} ${hy - 7} L${hx - 12} ${hy - 9} Z`);
+  const KIT = { bibsFar: '#2A3222', skinFar: '#A9785A', shoeFar: '#7F9A12', jersey: '#E9F5D6', bibs: '#3A4530', skin: '#D6A07A', glove: '#20261A', shoe: '#C7FF0D' };
+  function legAt(a) {
+    const P = [BB[0] + CRK * Math.cos(a), BB[1] + CRK * Math.sin(a)], A = [P[0] - 3, P[1] - 7];
+    const dx = A[0] - HIP[0], dy = A[1] - HIP[1], d = Math.min(Math.hypot(dx, dy), L1 + L2 - .01);
+    const base = Math.atan2(dy, dx), al = Math.acos((L1 * L1 + d * d - L2 * L2) / (2 * L1 * d));
+    return { P, A, K: [HIP[0] + L1 * Math.cos(base - al), HIP[1] + L1 * Math.sin(base - al)] };
+  }
+  function limb(A, B, ra, rb) {
+    const dx = B[0] - A[0], dy = B[1] - A[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+    return [[A[0] + nx * ra, A[1] + ny * ra], [B[0] + nx * rb, B[1] + ny * rb], [B[0] - nx * rb, B[1] - ny * rb], [A[0] - nx * ra, A[1] - ny * ra]];
+  }
+  const shoe = L => [[L.A[0] - 9, L.A[1] + 1], [L.A[0] - 4, L.A[1] - 6], [L.P[0] + 14, L.P[1] - 2], [L.P[0] + 19, L.P[1] + 3], [L.P[0] - 8, L.P[1] + 5]];
+  const NECK_A = [SH[0] + (HEAD[0] - SH[0]) * .35, SH[1] + (HEAD[1] - SH[1]) * .35], NECK_B = [HEAD[0] - 4, HEAD[1] + 4];
+
+  // part: 'back' = far leg + front wheel, 'front' = frame + rider. draw 0..1 builds the bike around the wheel.
+  function bike(part, x, y, r, th, rot, draw) {
+    if (draw <= .004) return;
+    const fd = clamp(draw / .6), rd = clamp((draw - .4) / .6), wd = clamp((draw - .3) / .4), a = rot * .6;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(th); ctx.scale(r / 56, r / 56); ctx.translate(-105, -190);
+    if (part === 'back') {
+      if (rd > 0) {
+        const F = legAt(a + Math.PI);
+        ctx.save(); ctx.globalAlpha *= rd;
+        poly(limb(HIP, F.K, 11, 8), KIT.bibsFar); dot(F.K, 8, KIT.bibsFar); poly(limb(F.K, F.A, 7.5, 5), KIT.skinFar); poly(shoe(F), KIT.shoeFar);
+        ctx.restore();
+      }
+      if (wd > 0) wheel(ctx, FH[0], FH[1], 56 * wd, rot);
+    } else {
+      const N = legAt(a);
+      ctx.save(); ctx.globalAlpha *= fd;
+      ctx.strokeStyle = C.lime; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      FRAME.forEach(f => { ctx.lineWidth = f[1]; ctx.stroke(f[0]); });
+      ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(BB[0], BB[1], 14, 0, 7); ctx.stroke();
+      ctx.fillStyle = C.lime; ctx.fill(SADDLE);
+      ctx.restore();
+      if (rd > 0) {
+        ctx.save(); ctx.globalAlpha *= rd;
+        ctx.strokeStyle = C.lime; ctx.lineWidth = 5; ctx.lineCap = 'round'; line([BB, N.P]);
+        poly(limb(HIP, SH, 14, 15), KIT.jersey); dot(HIP, 14, KIT.bibs); dot(SH, 14.5, KIT.jersey);
+        poly(limb(NECK_A, NECK_B, 10.5, 8), KIT.skin); dot(HEAD, 12, KIT.skin);
+        poly(limb(SH, EL, 7.5, 6), KIT.jersey); dot(EL, 6, KIT.skin); poly(limb(EL, HAND, 6, 4.5), KIT.skin); dot(HAND, 5, KIT.glove);
+        poly(limb(HIP, N.K, 13.5, 9.5), KIT.bibs); dot(N.K, 9.5, KIT.bibs); poly(limb(N.K, N.A, 8.5, 5.5), KIT.skin); poly(shoe(N), KIT.shoe);
+        ctx.fillStyle = C.flesh; ctx.fill(HELMET);
+        ctx.restore();
+      }
+    }
+    ctx.restore();
+  }
+
+  /* ---------- Map streets (fixed random layout) and rides ---------- */
+  let sd = 7; const rnd = () => { sd = (sd * 16807) % 2147483647; return (sd - 1) / 2147483646; };
+  const STREETS = [];
+  for (let i = 0; i < 13; i++) { const y = rnd(); STREETS.push(['h', y, y + (rnd() - .5) * .27, y + (rnd() - .5) * .27, y + (rnd() - .5) * .2, 1 + rnd() * 2]); }
+  for (let i = 0; i < 11; i++) { const x = rnd(); STREETS.push(['v', x, x + (rnd() - .5) * .27, x + (rnd() - .5) * .27, x + (rnd() - .5) * .2, 1 + rnd() * 2]); }
+  const PINS = [{ d: 6, a: -35, p: 'CALM', s: '≤ 25 km/h', t: 'Sat 09:00' }, { d: 11, a: 155, p: 'ADVANCED', s: '~ 28 km/h', t: 'Sat 08:30' }, { d: 17, a: 68, p: 'SPORTY', s: '30+ km/h', t: 'Sat 07:45' }];
+
+  /* ---------- One frame of the film, p = scroll progress 0..1 ---------- */
+  // page progress N -> film time p. Every scene gets its own scroll budget (in % of a screen height),
+  // sized by how much there is to read and watch, so no scene flashes by and none drags.
+  const FILM = [0, .07, .16, .335, .43, .515, .655, .72, .78, .812, .888, .91];
+  //             hero problem ride croissants season fuel | map: pins appear, hold | roll to the slope, the climb itself, exit | tiles | finale
+  const BUDGET = [70, 110, 180, 120, 100, 190, 80, 35, 40, 230, 20], TILES = 190, FINALE = 120;
+  const TOTAL = BUDGET.reduce((x, y) => x + y, 0) + TILES + FINALE;
+  const NP = [0]; BUDGET.forEach(v => NP.push(NP[NP.length - 1] + v / TOTAL));
+  const NB = NP[NP.length - 1], NC = NB + TILES / TOTAL;
+  const toFilm = n => {
+    if (n >= NC) return .91 + (n - NC) / (1 - NC) * .09;
+    if (n >= NB) return .91;
+    let i = 0; while (i < NP.length - 2 && n > NP[i + 1]) i++;
+    return FILM[i] + (n - NP[i]) / (NP[i + 1] - NP[i]) * (FILM[i + 1] - FILM[i]);
   };
-
-  // косточки по дуге - заодно деления шкалы
-  for (var i = 1; i < 10; i++) {
-    var a = Math.PI - (Math.PI * i / 10);
-    var r = i % 2 ? 128 : 150;
-    var x = 200 + r * Math.cos(a), y = 200 - r * Math.sin(a);
-    var deg = 90 - (a * 180 / Math.PI);
-    var s = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-    s.setAttribute('cx', x.toFixed(1)); s.setAttribute('cy', y.toFixed(1));
-    s.setAttribute('rx', '4'); s.setAttribute('ry', '7');
-    s.setAttribute('transform', 'rotate(' + deg.toFixed(1) + ' ' + x.toFixed(1) + ' ' + y.toFixed(1) + ')');
-    el.seeds.appendChild(s);
-  }
-
-  var zones = [
-    [450, 'Ripe! Maximum juice'],
-    [350, 'VO2max. Hold on!'],
-    [250, 'Threshold. Turning red'],
-    [150, 'Tempo. Filling out'],
-    [50,  'Warm-up. Turning pink'],
-    [0,   'Unripe. Pedal!']
+  const toPage = o => {
+    if (o > .91) return NC + (o - .91) / .09 * (1 - NC);
+    let i = 0; while (i < FILM.length - 2 && o > FILM[i + 1]) i++;
+    return NP[i] + (o - FILM[i]) / (FILM[i + 1] - FILM[i]) * (NP[i + 1] - NP[i]);
+  };
+  const ICONS = [
+    s => croissant(0, 0, s * 2.3),
+    s => { ctx.strokeStyle = C.rind; ctx.lineWidth = s * .14; ctx.beginPath(); ctx.arc(0, 0, s * .75, 0, 7); ctx.stroke(); ctx.fillStyle = C.flesh; ctx.beginPath(); ctx.arc(0, 0, s * .4, 0, 7); ctx.fill(); },
+    s => { ctx.fillStyle = C.lime; [[-.85, .4], [-.4, 1.1], [.05, .4], [.5, 1.1]].forEach(b => { rrect(b[0] * s, s * .62 - b[1] * s, s * .36, b[1] * s, s * .08); ctx.fill(); }); },
+    s => { ctx.strokeStyle = C.lime; ctx.lineWidth = s * .12; ctx.setLineDash([s * .22, s * .18]); ctx.beginPath(); ctx.arc(0, 0, s * .78, 0, 7); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = C.lime; ctx.beginPath(); ctx.arc(-s * .25, s * .1, s * .2, 0, 7); ctx.fill(); ctx.fillStyle = C.text; ctx.beginPath(); ctx.arc(s * .3, -s * .15, s * .2, 0, 7); ctx.fill(); },
+    s => { ctx.strokeStyle = C.text; ctx.lineWidth = s * .14; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; line([[-s * .6, -s * .05], [-s * .6, s * .7], [s * .6, s * .7], [s * .6, -s * .05]]); ctx.strokeStyle = C.lime; line([[0, s * .3], [0, -s * .75]]); line([[-s * .32, -s * .43], [0, -s * .75], [s * .32, -s * .43]]); },
+    s => { ctx.strokeStyle = C.lime; ctx.lineWidth = s * .16; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; line([[-s * .75, s * .55], [-s * .2, 0], [s * .15, s * .25], [s * .75, -s * .55]]); line([[s * .3, -s * .58], [s * .75, -s * .55], [s * .72, -s * .1]]); }
   ];
-  var lines = [
-    'Now those are watts. The app will ripen just as fast.',
-    'Juicy. Soon you can log this as a real ride.',
-    'Ripe! Now don\'t forget to fuel.'
-  ];
+  const TILE_LABELS = ['Ride in food', 'Fuel', 'Training plans', 'Together', 'Share card', 'W/kg goal'];
 
-  function push() {
-    watts = Math.min(MAX, watts + 32 + Math.random() * 10);
-    el.hint.style.opacity = '0';
-  }
-  function start(e) {
-    if (e) e.preventDefault();
-    push();
-    clearInterval(holding);
-    holding = setInterval(push, 160);
-  }
-  function stop() { clearInterval(holding); holding = null; }
+  const outlineCanvas = document.createElement('canvas');
+  let lightAmt = 0;
+  function drawFrame(n) {
+    const p = toFilm(n), q = seg(n, NB, NC);
+    const w = W, h = H, u = Math.min(w * .3, h * .22), rr = u * .3, roadY = h * .5, small = w < 700;
+    const mg = Math.max(16, w * .04), xStart = w * .12, xPark = w - mg - 4.1 * rr, xEnd = xPark - 1.6 * rr, ry = roadY - rr;
+    const ang = (small ? 10 : 12) * Math.PI / 180, L = Math.min(w * .8, h * 1.2), ca = Math.cos(ang), sa = Math.sin(ang);
+    const S = [(w - L * ca) / 2, h * .5], onSlope = d => [S[0] + ca * d - sa * rr, S[1] - sa * d - ca * rr];
+    const c0 = onSlope(L * .06), c1 = onSlope(L * .42), mapC = [w * .5, h * .33], hero = [w * .56, h * .34];
 
-  el.gauge.addEventListener('pointerdown', start);
-  window.addEventListener('pointerup', stop);
-  window.addEventListener('pointercancel', stop);
-  window.addEventListener('keydown', function (e) {
-    if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat) { e.preventDefault(); push(); }
+    ctx.clearRect(0, 0, w, h); ctx.fillStyle = C.bg; ctx.fillRect(0, 0, w, h);
+
+    // wheel path: [p, x, y, r, easing of the segment that starts here]
+    const K = [
+      [0, hero[0], hero[1], u], [.06, hero[0], hero[1], u],
+      [.12, xStart, ry, rr], [.19, xStart, ry, rr, 'r'],
+      [.335, xPark, ry, rr], [.535, xPark, ry, rr],
+      [.536, mapC[0], mapC[1], u * .14], [.78, mapC[0], mapC[1], u * .14],
+      [.812, c0[0], c0[1], rr, 'l'], [.885, c1[0], c1[1], rr],
+      [.93, hero[0], hero[1], u], [1, hero[0], hero[1], u]
+    ];
+    let i = 0; while (i < K.length - 2 && p > K[i + 1][0]) i++;
+    const A = K[i], B = K[i + 1], tt = seg(p, A[0], B[0]), t = A[4] === 'l' ? tt : A[4] === 'r' ? rideEase(tt) : ease(tt);
+    let wx = lerp(A[1], B[1], t), wy = lerp(A[2], B[2], t), wr = lerp(A[3], B[3], t);
+    if (i === 1 || i === 9) wy -= Math.sin(Math.PI * t) * h * .05;              // rolls in an arc
+    if (q > 0 && q < 1) {                                                       // the wheel becomes the hub of six tiles
+      const tb = ease(seg(q, 0, .14)) * (1 - ease(seg(q, .88, 1)));
+      wx = lerp(wx, w * .5, tb); wy = lerp(wy, h * .31, tb); wr = lerp(wr, u * .24, tb);
+    }
+    const rot = wx / rr;
+    const yaw = Math.max(.55 * (1 - ease(seg(p, .01, .075))), .5 * ease(seg(p, .925, .975)));
+    const wAlpha = p < .6 ? 1 - seg(p, .52, .535) : seg(p, .64, .65);
+    const wPop = p < .6 ? 1 : backOut(seg(p, .64, .665));
+    const draw = p < .6 ? seg(p, .165, .19) * (1 - seg(p, .515, .53)) : seg(p, .812, .828) * (1 - seg(p, .875, .888));
+    const th = p < .7 ? 0 : -ang * ease(seg(p, .785, .812)) * (1 - ease(seg(p, .888, .93)));
+
+    // glow behind the wheel
+    layer(wAlpha, () => {
+      const g = ctx.createRadialGradient(wx, wy, 0, wx, wy, Math.max(wr * 3.4, u * 1.2));
+      g.addColorStop(0, 'rgba(199,255,13,.13)'); g.addColorStop(1, 'rgba(199,255,13,0)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    });
+
+    // flat road
+    layer(win(p, .08, .535, .02), () => {
+      ctx.strokeStyle = '#3A4330'; ctx.lineWidth = 2; line([[0, roadY], [w, roadY]]);
+      ctx.strokeStyle = 'rgba(185,196,169,.3)'; ctx.lineWidth = 4; ctx.setLineDash([26, 44]); ctx.lineDashOffset = wx * 1.6;
+      line([[0, roadY + 9], [w, roadY + 9]]); ctx.setLineDash([]);
+    });
+
+    // 02: the number nobody can eat
+    layer(win(p, .07, .168), () => {
+      const v = 2840 * ease(seg(p, .08, .125)), px = Math.min(u * 1.05, w * .26);
+      // outline only: stroke the digits on a spare canvas, then erase their insides, so glyphs built
+      // from overlapping strokes (the "4") show no inner lines
+      const dpr = canvas.width / w, oh = px * 1.4, o = outlineCanvas, oc = o.getContext('2d');
+      o.width = Math.round(w * dpr); o.height = Math.round(oh * dpr);
+      oc.setTransform(dpr, 0, 0, dpr, 0, 0);
+      oc.font = font(px); oc.textAlign = 'center'; oc.textBaseline = 'middle'; oc.lineJoin = 'round';
+      oc.lineWidth = Math.max(3, px * .036); oc.strokeStyle = C.lime; oc.strokeText(num(v), w * .5, oh / 2);
+      oc.globalCompositeOperation = 'destination-out'; oc.fillStyle = '#000'; oc.fillText(num(v), w * .5, oh / 2);
+      oc.globalCompositeOperation = 'source-over';
+      ctx.drawImage(o, 0, h * .27 - oh / 2, w, oh);
+      text('kcal', w * .5, h * .27 + px * .68, px * .2, C.soft, 600);
+    });
+
+    // 03: 06:40, the ride - elevation and ride computer
+    const rideT = rideEase(seg(p, .19, .335));
+    layer(win(p, .162, .345, .012), () => {
+      const pts = []; const end = lerp(0, 1, rideT);
+      for (let k = 0; k <= 80; k++) pts.push([w * k / 80, roadY - h * .05 - h * .06 * (.5 + .5 * Math.sin(k / 9)) - h * .025 * Math.sin(k / 3.3 + 1)]);
+      const g = ctx.createLinearGradient(0, roadY - h * .2, 0, roadY);
+      g.addColorStop(0, 'rgba(199,255,13,.14)'); g.addColorStop(1, 'rgba(199,255,13,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(0, roadY); pts.forEach(q => ctx.lineTo(q[0], q[1])); ctx.lineTo(w, roadY); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(199,255,13,.6)'; ctx.lineWidth = 2; line(pts.slice(0, Math.max(2, Math.round(end * 80) + 1)));
+      const mins = 103 * rideT, on = rideT > .005;
+      let cells = [
+        ['Power', on ? String(Math.round(175 + 48 * Math.sin(rideT * 41) + 22 * Math.sin(rideT * 113))) : '0', 'W'],
+        ['Speed', (on ? 29 + 3.6 * Math.sin(rideT * 29) + 1.4 * Math.sin(rideT * 71) : 0).toFixed(1), 'km/h'],
+        ['Distance', (50 * rideT).toFixed(1), 'km'],
+        ['Time', Math.floor(mins / 60) + ':' + String(Math.floor(mins % 60)).padStart(2, '0'), 'h'],
+        ['Energy', num(1080 * rideT), 'kcal']
+      ];
+      if (rideT >= 1) cells[0][1] = '175', cells[1][1] = '29.0';
+      if (small) cells = cells.slice(2);
+      const gap = small ? w * .3 : Math.min(w * .17, 200), vy = h * .14, vpx = Math.min(u * .32, w * .085), lpx = Math.max(10, vpx * .26);
+      cells.forEach((d, k) => {
+        const x = w * .5 + (k - (cells.length - 1) / 2) * gap, last = k === cells.length - 1;
+        text(d[0].toUpperCase(), x, vy - vpx * .85, lpx, C.soft, 600);
+        text(d[1], x, vy, vpx, last ? C.lime : C.text);
+        text(d[2], x, vy + vpx * .78, lpx, C.soft, 600);
+      });
+    });
+
+    // 04: 08:45, four croissants land on the plate
+    layer(win(p, .338, .432), () => {
+      const cw = Math.min(w * .19, u * .85), cy = small ? h * .19 : h * .26, x0 = (small ? w * .5 : w * .42);
+      let landed = 0;
+      for (let k = 0; k < 4; k++) {
+        const tk = seg(p, .345 + k * .012, .368 + k * .012); if (tk <= 0) continue;
+        if (tk > .36) landed = k + 1;
+        const x = x0 + (k - 1.5) * cw * 1.08;
+        ctx.save(); ctx.translate(x, cy - (1 - bounce(tk)) * h * .5); ctx.rotate([-8, 6, -4, 10][k] * Math.PI / 180 * tk);
+        croissant(0, 0, cw, true); ctx.restore();
+      }
+      const fs = Math.max(13, u * .12);
+      text('× ' + landed, x0, cy + cw * .62, fs * 2.1, C.text);
+      const a = ease(seg(p, .395, .408));
+      if (a > 0) {
+        ctx.globalAlpha *= a; const label = 'Share as a Stories card';
+        ctx.font = font(fs, 600); const tw = ctx.measureText(label).width + fs * 2.2;
+        ctx.strokeStyle = C.lime; ctx.lineWidth = 1.5; rrect(x0 - tw / 2, cy + cw * .62 + fs * 1.9, tw, fs * 2.3, fs * 1.15); ctx.stroke();
+        text(label, x0, cy + cw * .62 + fs * 3.05, fs, C.lime, 600);
+      }
+    });
+
+    // 05: one season, 107 croissants
+    layer(win(p, .432, .512), () => {
+      const cols = small ? 15 : 27, rows = Math.ceil(107 / cols);
+      const cell = Math.min(w * .9 / cols, u * .26), cy = small ? h * .225 : h * .25, cxm = small ? w * .5 : w * .44, shown = Math.round(107 * seg(p, .438, .48));
+      text('35 rides  ·  1,161 km  ·  28,929 kcal', cxm, cy - rows * cell * .5 - cell * .8, Math.max(12, u * .1), C.soft, 600);
+      for (let k = 0; k < shown; k++) {
+        const row = Math.floor(k / cols), inRow = row === rows - 1 ? 107 - row * cols : cols, col = k - row * cols;
+        croissant(cxm + (col - (inRow - 1) / 2) * cell, cy + (row - (rows - 1) / 2) * cell, cell * .84);
+      }
+    });
+
+    // 07: Saturday - riders within 20 km
+    layer(win(p, .6, .795, .02), () => {
+      const cx = mapC[0], cy = mapC[1], R0 = Math.min(w * .42, h * .225), R = R0 * ease(seg(p, .655, .675)), mh = h * .64;
+      ctx.lineCap = 'round';
+      STREETS.forEach(s => {
+        ctx.strokeStyle = '#1E2418'; ctx.lineWidth = s[5]; ctx.beginPath();
+        if (s[0] === 'h') { ctx.moveTo(-20, s[1] * mh); ctx.bezierCurveTo(w * .3, s[2] * mh, w * .7, s[3] * mh, w + 20, s[4] * mh); }
+        else { ctx.moveTo(s[1] * w, -20); ctx.bezierCurveTo(s[2] * w, mh * .33, s[3] * w, mh * .66, s[4] * w, mh + 20); }
+        ctx.stroke();
+      });
+      ctx.strokeStyle = '#2C3424'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(-20, mh * .7); ctx.bezierCurveTo(w * .25, mh * .58, w * .45, mh * .8, w * .64, mh * .63); ctx.bezierCurveTo(w * .8, mh * .5, w * .92, mh * .52, w + 20, mh * .55); ctx.stroke();
+      ctx.strokeStyle = '#3A4330'; ctx.lineWidth = 1; ctx.setLineDash([3, 6]);
+      [.25, .5].forEach(k => { ctx.beginPath(); ctx.arc(cx, cy, R0 * k, 0, 7); ctx.stroke(); }); ctx.setLineDash([]);
+      const fs = Math.max(10, Math.min(13, u * .085));
+      text('10 km', cx, cy - R0 * .5 - fs, fs * .9, '#7D8771', 600);
+      if (R > 2) {
+        ctx.fillStyle = 'rgba(199,255,13,.07)'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
+        ctx.strokeStyle = C.lime; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
+        const sw = seg(p, .675, .72);                       // one full turn of the search line, starting at 12 o'clock
+        if (sw > 0 && sw < 1) { const a = -Math.PI / 2 + sw * Math.PI * 2; ctx.strokeStyle = 'rgba(199,255,13,.5)'; line([[cx, cy], [cx + Math.cos(a) * R, cy + Math.sin(a) * R]]); }
+        layer(seg(p, .668, .678), () => text('20 km', cx, cy - R0 - fs, fs * 1.1, C.lime, 600));
+        PINS.forEach((o, k) => {
+          const at = (((o.a + 90) % 360) + 360) % 360 / 360, a = seg(sw, at, at + .09); if (a <= 0) return;   // a ride shows up only once the search line has passed over it
+          const r = o.a * Math.PI / 180, x = cx + Math.cos(r) * R0 * o.d / 20, y = cy + Math.sin(r) * R0 * o.d / 20, sc = backOut(a);
+          const l1 = o.p + ' ' + o.s, l2 = o.d + ' km away · ' + o.t;
+          ctx.font = font(fs, 600); const cw = Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width) + fs * 2, chh = fs * 3.5;
+          let bx = x < cx ? x - fs * 1.1 - cw : x + fs * 1.1, byc = y;
+          if (bx < 8 || bx + cw > w - 8) { bx = clamp(x - cw / 2, 8, w - 8 - cw); byc = y + (y < cy ? -1 : 1) * (chh / 2 + fs * 1.1); }
+          ctx.save(); ctx.globalAlpha *= clamp(a * 2); ctx.translate(x, y); ctx.scale(sc, sc); ctx.translate(-x, -y);
+          ctx.fillStyle = C.bg; ctx.strokeStyle = '#262C1E'; ctx.lineWidth = 1; rrect(bx, byc - chh / 2, cw, chh, fs); ctx.fill(); ctx.stroke();
+          text(l1, bx + fs, byc - fs * .68, fs, C.lime, 600, 'left');
+          text(l2, bx + fs, byc + fs * .72, fs * .92, '#B9C4A9', 500, 'left');
+          ctx.fillStyle = C.flesh; ctx.strokeStyle = C.bg; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, fs * .7, 0, 7); ctx.fill(); ctx.stroke();
+          ctx.restore();
+        });
+      }
+    });
+
+    // 08: next weeks - the climb to 4 W/kg
+    layer(win(p, .79, .905, .012), () => {
+      const e = [S[0] + ca * L, S[1] - sa * L], fs = Math.max(12, u * .1);
+      ctx.strokeStyle = '#3A4330'; ctx.lineWidth = 2; line([[-20, S[1]], S, e]);
+      ctx.strokeStyle = C.lime; ctx.lineWidth = 2.5; line([e, [e[0], e[1] - fs * 2.6]]);
+      ctx.fillStyle = C.lime; ctx.beginPath(); ctx.moveTo(e[0], e[1] - fs * 2.6); ctx.lineTo(e[0] - fs * 1.5, e[1] - fs * 2.05); ctx.lineTo(e[0], e[1] - fs * 1.5); ctx.fill();
+      text('4.0 W/kg', e[0], e[1] - fs * 3.5, fs * 1.25, C.lime, 800, e[0] > w - fs * 4 ? 'right' : 'center');
+      text('3.85', S[0], S[1] + fs * 1.4, fs, C.soft, 600, 'left');
+    });
+
+    // what's inside: six tiles around the hub
+    if (q > 0 && q < 1) layer(1, () => {
+      const cx = w * .5, cy = h * .31, ex = Math.min(w * .36, u * 2.1), ey = h * .17, ts = u * .42, fs = Math.max(11, u * .085);
+      for (let k = 0; k < 6; k++) {
+        const pop = ease(seg(q, .12 + k * .055, .26 + k * .055)) * (1 - ease(seg(q, .72 + (5 - k) * .025, .8 + (5 - k) * .025))); if (!pop) continue;   // out one by one, back into the hub in reverse order
+        const a = -Math.PI / 2 + k * Math.PI / 3, x = cx + Math.cos(a) * ex * pop, y = cy + Math.sin(a) * ey * pop;
+        ctx.save(); ctx.globalAlpha *= pop;
+        ctx.strokeStyle = 'rgba(199,255,13,.22)'; ctx.lineWidth = 1.5; line([[cx, cy], [x, y]]);
+        ctx.fillStyle = '#161A13'; rrect(x - ts / 2, y - ts / 2, ts, ts, ts * .28); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.save(); ctx.translate(x, y); ICONS[k](ts * .28); ctx.restore();
+        text(TILE_LABELS[k], x, y + ts / 2 + fs * 1.1, fs, C.text, 600);
+        ctx.restore();
+      }
+    });
+
+    // 06: Fuel - a light screen opens from the rear wheel and closes into your mark on the map
+    const lr = p < .6 ? easeOut(seg(p, .515, .545)) : 1 - ease(seg(p, .625, .652));
+    lightAmt = lr;
+    if (lr > .001) {
+      const lc = p < .6 ? [xPark, ry] : mapC, hyp = Math.hypot(Math.max(lc[0], w - lc[0]), Math.max(lc[1], h - lc[1]));
+      ctx.save(); ctx.beginPath(); ctx.arc(lc[0], lc[1], lr * hyp, 0, 7); ctx.clip();
+      ctx.fillStyle = C.light; ctx.fillRect(0, 0, w, h);
+      const ink = '#0B0D0A', fs = Math.max(11, u * .09), npx = Math.min(u * .78, w * .2), ny = h * .2;
+      text("TODAY'S NORM", w * .5, ny - npx * .78, fs, '#5A6350', 600);
+      // the norm counts up exactly as the meal bar below fills: breakfast, lunch, dinner
+      const meals = [1040, 1280, 1060], fill = meals.map((m, k) => ease(seg(p, .55 + k * .017, .567 + k * .017)));
+      const v = 2300 + 1080 * (fill[0] * meals[0] + fill[1] * meals[1] + fill[2] * meals[2]) / 3380;
+      ctx.font = font(npx); const nw = ctx.measureText(num(v)).width; ctx.font = font(npx * .3, 600); const kw = ctx.measureText(' kcal').width;
+      text(num(v), w * .5 - (nw + kw) / 2, ny, npx, ink, 800, 'left');
+      text(' kcal', w * .5 - (nw + kw) / 2 + nw, ny + npx * .2, npx * .3, '#5A6350', 600, 'left');
+      const ca2 = ease(seg(p, .546, .556));
+      if (ca2 > 0) {
+        const label = "+1,080 kcal for this morning's 50 km"; ctx.font = font(fs * 1.1, 600);
+        const tw = ctx.measureText(label).width + fs * 2.4, y = ny + npx * .78 + (1 - ca2) * 10;
+        ctx.save(); ctx.globalAlpha *= ca2; ctx.fillStyle = ink; rrect(w * .5 - tw / 2, y - fs * 1.2, tw, fs * 2.4, fs * 1.2); ctx.fill();
+        text(label, w * .5, y, fs * 1.1, C.lime, 600); ctx.restore();
+      }
+      const bw = Math.min(w * .84, 600), bx = w * .5 - bw / 2, by = ny + npx * .78 + fs * 3, bh = Math.max(10, fs * 1.1);
+      let off = 0;
+      meals.forEach((m, k) => {
+        const sw = bw * m / 3380 - 4, g = fill[k];
+        ctx.fillStyle = 'rgba(11,13,10,.1)'; rrect(bx + off, by, sw, bh, bh / 2); ctx.fill();
+        if (g > .02) { ctx.fillStyle = ['#FF7A86', '#FF4D5E', '#E0263C'][k]; rrect(bx + off, by, Math.max(bh, sw * g), bh, bh / 2); ctx.fill(); }
+        off += sw + 4;
+      });
+      ctx.restore();
+    }
+
+    // the wheel leads the whole page; the bike is built around it
+    bike('back', wx, wy, wr, th, rot, draw);
+    layer(wAlpha, () => wheel(ctx, wx, wy, wr * wPop, rot, yaw));
+    bike('front', wx, wy, wr, th, rot, draw);
+    layer(win(p, .655, .775, .015), () => text('You', wx, wy + wr + Math.max(11, u * .09) * 1.2, Math.max(11, u * .09), C.text, 600));
+  }
+
+  /* ---------- Canvas size with devicePixelRatio ---------- */
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = scene.clientWidth; H = scene.clientHeight;
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawn = -1;
+  }
+
+  /* ---------- Scroll handler: state only, no canvas drawing ---------- */
+  const track = $('#scrolltrack'), bar = $('#page-progress .bar');
+  const chapters = Array.from(document.querySelectorAll('.chapter')).map(el => { const d = el.dataset.direct, a = parseFloat(el.dataset.start), b = parseFloat(el.dataset.end), f = d ? (v => NB + (NC - NB) * v) : toPage; return { el, start: f(a), end: f(b), anim: el.dataset.anim, t: -1 }; });
+  chapters[chapters.length - 1].last = true;
+  const lev = { valA: $('#valA'), resA: $('#resA'), valB: $('#valB'), resB: $('#resB') };
+  function getProgress() {
+    const r = track.getBoundingClientRect();
+    return clamp(-r.top / (r.height - window.innerHeight));
+  }
+  function onScroll() {
+    target = getProgress();
+    bar.style.width = (target * 100) + '%';
+    for (const ch of chapters) {
+      const vis = target >= ch.start && target <= ch.end;
+      ch.el.classList.toggle('visible', vis);
+      if (ch.last) document.body.classList.toggle('at-cta', vis);
+      if (vis && ch.anim) {
+        const t = Math.round(clamp((target - ch.start) / (ch.end - ch.start) / (ch.anim === 'fuel' ? .76 : .55)) * 200) / 200;   // fuel: meal rows arrive in step with the bar
+        if (t !== ch.t) {
+          ch.t = t; ch.el.style.setProperty('--t', t);
+          if (ch.anim === 'levers') {
+            const f = 308 + 12 * t, kg = 80 - 3 * t;
+            lev.valB.textContent = Math.round(f) + ' W'; lev.resB.textContent = (f / 80).toFixed(2);
+            lev.valA.textContent = kg.toFixed(1) + ' kg'; lev.resA.textContent = (308 / kg).toFixed(2);
+          }
+        }
+      }
+    }
+  }
+
+  /* ---------- Render loop: draws only when the frame changed ---------- */
+  let lastLight = -1;
+  function tick() {
+    cur += (target - cur) * .16;
+    if (Math.abs(target - cur) < .0002) cur = target;
+    if (cur !== drawn) {
+      drawFrame(cur); drawn = cur;
+      const l = Math.round(lightAmt * 50) / 50;
+      if (l !== lastLight) { lastLight = l; overlay.style.opacity = 1 - l; document.body.classList.toggle('on-light', l > .5); }
+    }
+    requestAnimationFrame(tick);
+  }
+
+  /* ---------- Beta request form ----------
+     BETA is null until the database part is live: the request then leaves as a ready-made email
+     to hello@wattermelon.com (nothing is pretended to be saved). When it is live, set:
+       const BETA = { url: 'https://<project>.supabase.co/rest/v1/rpc/request_beta', key: '<publishable key>' };
+     ------------------------------------------ */
+  const BETA = null;
+  const form = $('#beta-form'), msg = $('#beta-msg'), done = $('#beta-done');
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = form.email.value.trim(), btn = form.querySelector('button'), rides = form.rides_with;
+    const fail = t => { msg.textContent = t; msg.classList.add('err'); };
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { form.email.classList.add('bad'); form.email.focus(); return fail('Please enter a valid email.'); }
+    form.email.classList.remove('bad');
+    if (form.website.value) { form.hidden = true; done.hidden = false; return; }      // bots get a silent "ok"
+    if (!BETA) {
+      const body = 'Hi! I would like to join the Wattermelon beta.\n\nEmail: ' + email + (rides.value ? '\nI ride with: ' + rides.options[rides.selectedIndex].text : '');
+      const href = 'mailto:hello@wattermelon.com?subject=' + encodeURIComponent('Wattermelon beta request') + '&body=' + encodeURIComponent(body);
+      $('#beta-done strong').textContent = 'One last step.';
+      $('#beta-done-text').innerHTML = 'Send the email that just opened - that is your request. <a href="' + href + '">Open it again</a>';
+      form.hidden = true; done.hidden = false;
+      window.location.href = href;
+      return;
+    }
+    btn.disabled = true; btn.textContent = 'Sending...';
+    try {
+      const r = await fetch(BETA.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: BETA.key, Authorization: 'Bearer ' + BETA.key },
+        body: JSON.stringify({ p_email: email, p_rides_with: rides.value || null })
+      });
+      if (!r.ok) throw new Error(r.status);
+      form.hidden = true; done.hidden = false;
+    } catch (err) {
+      btn.disabled = false; btn.textContent = 'Request a spot';
+      fail('Something went wrong. Please try again or write to hello@wattermelon.com.');
+    }
   });
 
-  var last = performance.now();
-  function frame(now) {
-    var dt = Math.min(64, now - last); last = now;
-    if (!holding) watts = Math.max(0, watts - (watts * 0.0016 + 0.09) * dt);
-    var p = watts / MAX;
-    el.ripe.setAttribute('stroke-dasharray', (p * 100).toFixed(2) + ' 100');
-    el.needle.style.transform = 'rotate(' + (-90 + 180 * p).toFixed(2) + 'deg)';
-    var shown = Math.round(watts);
-    el.w.textContent = shown;
-    for (var i = 0; i < zones.length; i++) if (shown >= zones[i][0]) { el.zone.textContent = zones[i][1]; break; }
-    if (shown > peak) { peak = shown; if (peak > 40) el.peak.textContent = 'Your peak: ' + peak + ' W'; }
-    if (shown >= 450 && !ripeShown) {
-      ripeShown = true;
-      el.msg.textContent = lines[Math.floor(Math.random() * lines.length)];
-      el.msg.classList.add('on');
-    }
-    if (shown < 120 && ripeShown) { ripeShown = false; }
-    requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
+  /* ---------- Header button: jump straight to the request form ---------- */
+  $('#skip').addEventListener('click', e => {
+    if (document.body.classList.contains('reduced')) return;        // plain page: the normal anchor works
+    e.preventDefault();
+    window.scrollTo({ top: track.offsetTop + track.offsetHeight - window.innerHeight, behavior: 'smooth' });
+  });
+
+  /* ---------- Start ---------- */
+  wheel($('#brand-logo').getContext('2d'), 30, 30, 29, 0);
+  wheel($('#loader-logo').getContext('2d'), 64, 64, 62, 0);
+  const loader = $('#loader'), pbar = $('#progressbar');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced) document.body.classList.add('reduced');
+
+  resize();
+  addEventListener('resize', () => { resize(); onScroll(); if (reduced) drawFrame(.03); });
+  pbar.style.width = '60%';
+  const fontsReady = (document.fonts && document.fonts.ready) ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 2500))]) : Promise.resolve();
+  fontsReady.then(() => {
+    pbar.style.width = '100%'; loader.classList.add('done'); setTimeout(() => loader.remove(), 500);
+    if (reduced) { drawFrame(.03); return; }
+    addEventListener('scroll', onScroll, { passive: true });
+    onScroll(); cur = target; tick();
+  });
 })();
 </script>
 </body>
