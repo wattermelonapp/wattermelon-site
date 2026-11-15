@@ -127,6 +127,8 @@
   footer.site { padding: 40px clamp(16px, 4vw, 40px) 48px; border-top: 1px solid rgba(255,255,255,.08); display: flex; flex-wrap: wrap; gap: 14px 28px; justify-content: center; font-size: 14px; color: var(--mute); font-weight: 500; }
   footer.site a { text-decoration: none; color: var(--soft); }
   footer.site a:hover { color: var(--lime); }
+  footer.site .age { border: 1px solid rgba(255,255,255,.25); border-radius: 6px; padding: 1px 6px; color: var(--soft); font-weight: 800; font-size: 12px; }
+  footer.site .nocookie { flex-basis: 100%; text-align: center; font-size: 13px; }
 
   /* Loader */
   #loader { position: fixed; inset: 0; z-index: 200; background: var(--bg); display: grid; place-items: center; transition: opacity .4s ease; }
@@ -319,7 +321,7 @@
               <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
               <button class="btn" type="submit">Request a spot</button>
             </div>
-            <p class="fine" id="beta-msg" role="status" aria-live="polite">We only use your email for the beta invite. <a href="https://wattermelon.com/privacy/">Privacy</a> · <a href="https://www.instagram.com/wattermelon.app/" target="_blank" rel="noopener">Instagram</a></p>
+            <p class="fine" id="beta-msg" role="status" aria-live="polite">We only use your email for the beta invite. By requesting a spot you accept the <a href="/terms/">Terms</a> and the <a href="/privacy/">Privacy Policy</a>. 18+</p>
           </form>
           <div id="beta-done" class="beta-done" hidden>
             <strong>You're on the list.</strong>
@@ -333,10 +335,12 @@
 
 <footer class="site">
   <span>© 2026 Wattermelon</span>
+  <span class="age" title="For adults only">18+</span>
+  <a href="/terms/">Terms</a>
+  <a href="/privacy/">Privacy</a>
   <a href="mailto:hello@wattermelon.com">hello@wattermelon.com</a>
   <a href="https://www.instagram.com/wattermelon.app/" target="_blank" rel="noopener">@wattermelon.app</a>
-  <a href="https://wattermelon.com/privacy/">Privacy</a>
-  <a href="https://wattermelon.com/terms/">Terms</a>
+  <span class="nocookie">This site uses no cookies and no trackers.</span>
 </footer>
 
 <script>
