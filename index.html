@@ -130,6 +130,10 @@
   footer.site .age { border: 1px solid rgba(255,255,255,.25); border-radius: 6px; padding: 1px 6px; color: var(--soft); font-weight: 800; font-size: 12px; }
   footer.site .nocookie { flex-basis: 100%; text-align: center; font-size: 13px; }
 
+  #jump-cover { position: fixed; inset: 0; z-index: 80; background: var(--bg); opacity: 0; pointer-events: none; transition: opacity .18s ease; }
+  #jump-cover.on { opacity: 1; }
+  body.jumping .chapter { transition: none; }
+
   /* Loader */
   #loader { position: fixed; inset: 0; z-index: 200; background: var(--bg); display: grid; place-items: center; transition: opacity .4s ease; }
   #loader.done { opacity: 0; pointer-events: none; }
@@ -208,6 +212,8 @@
     <div class="progress"><div id="progressbar" class="bar"></div></div>
   </div>
 </div>
+
+<div id="jump-cover" aria-hidden="true"></div>
 
 <div id="page-progress" aria-hidden="true"><div class="bar"></div></div>
 
@@ -847,11 +853,23 @@
     }
   });
 
-  /* ---------- Header button: jump straight to the request form ---------- */
+  /* ---------- Header button: go straight to the request form ----------
+     No fly-through of every scene: the screen dims for a moment, the page jumps to the last
+     chapter in one step, and the picture is drawn there at once. */
+  const cover = $('#jump-cover');
   $('#skip').addEventListener('click', e => {
     if (document.body.classList.contains('reduced')) return;        // plain page: the normal anchor works
     e.preventDefault();
-    window.scrollTo({ top: track.offsetTop + track.offsetHeight - window.innerHeight, behavior: 'smooth' });
+    cover.classList.add('on');
+    setTimeout(() => {
+      document.body.classList.add('jumping');                       // texts switch at once, no cross-fade
+      window.scrollTo(0, track.offsetTop + track.offsetHeight - window.innerHeight);
+      onScroll(); cur = target; drawn = -1;                         // skip the smoothing, land on the final frame
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        cover.classList.remove('on');
+        setTimeout(() => document.body.classList.remove('jumping'), 300);
+      }));
+    }, 190);
   });
 
   /* ---------- Start ---------- */
