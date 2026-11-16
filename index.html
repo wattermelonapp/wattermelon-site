@@ -364,8 +364,7 @@
 <script>
 (() => {
   const $ = s => document.querySelector(s);
-  let ctx = document.querySelector('#seq').getContext('2d');
-  const scene = $('.scene'), canvas = $('#seq'), overlay = $('.overlay-gradient');
+  const scene = $('.scene'), canvas = $('#seq'), ctx = canvas.getContext('2d'), overlay = $('.overlay-gradient');
   const C = { bg: '#0B0D0A', lime: '#C7FF0D', flesh: '#FF4D5E', rind: '#E9F5D6', text: '#F4F7EE', soft: '#9BA391', light: '#EEF3E0' };
   let W = 0, H = 0, target = 0, cur = 0, drawn = -1;
 
@@ -382,25 +381,7 @@
   const font = (px, wt = 800) => `${wt} ${px}px "Inter Tight",system-ui,-apple-system,"Segoe UI",sans-serif`;
   const num = n => Math.round(n).toLocaleString('en-US');
 
-  // A half-transparent object is first drawn fully opaque on a spare canvas and then laid on top
-  // with the transparency as one picture. Drawing its parts one by one with transparency would let
-  // the overlapping shapes (legs over the frame, croissant layers, icons over tiles) show through.
-  const POOL = []; let depth = 0, SAFE = false;
-  function layer(a, fn) {
-    if (a <= .004) return;
-    if (a >= .996) { fn(); return; }
-    if (SAFE) { ctx.save(); ctx.globalAlpha *= a; fn(); ctx.restore(); return; }
-    const main = ctx, dpr = canvas.width / W;
-    let off = POOL[depth];
-    if (!off) off = POOL[depth] = document.createElement('canvas');
-    if (off.width !== canvas.width || off.height !== canvas.height) { off.width = canvas.width; off.height = canvas.height; }
-    const oc = off.getContext('2d');
-    if (!oc) { SAFE = true; ctx.save(); ctx.globalAlpha *= a; fn(); ctx.restore(); return; }
-    oc.setTransform(1, 0, 0, 1, 0, 0); oc.clearRect(0, 0, off.width, off.height); oc.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx = oc; depth++;
-    try { fn(); } finally { depth--; ctx = main; }
-    main.save(); main.setTransform(1, 0, 0, 1, 0, 0); main.globalAlpha *= a; main.drawImage(off, 0, 0); main.restore();
-  }
+  function layer(a, fn) { if (a <= .004) return; ctx.save(); ctx.globalAlpha *= a; fn(); ctx.restore(); }
   function text(s, x, y, px, color, wt = 800, align = 'center') {
     ctx.font = font(px, wt); ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.fillText(s, x, y);
   }
@@ -494,7 +475,7 @@
   // part: 'back' = far leg + front wheel, 'front' = frame + rider. draw 0..1 builds the bike around the wheel.
   function bike(part, x, y, r, th, rot, draw) {
     if (draw <= .004) return;
-    const fd = 1, rd = 1, wd = 1, a = rot * .6;                  // the whole bike at once; the caller fades it as one picture
+    const fd = 1, rd = 1, wd = 1, a = rot * .6;                  // the whole bike at once
     ctx.save(); ctx.translate(x, y); ctx.rotate(th); ctx.scale(r / 56, r / 56); ctx.translate(-105, -190);
     if (part === 'back') {
       if (rd > 0) {
@@ -621,20 +602,14 @@
       const v = 2840 * ease(seg(p, .08, .125)), px = Math.min(u * 1.05, w * .26);
       // outline only: stroke the digits on a spare canvas, then erase their insides, so glyphs built
       // from overlapping strokes (the "4") show no inner lines
-      const dpr = canvas.width / w, oh = px * 1.4, o = outlineCanvas, oc = SAFE ? null : o.getContext('2d');
-      if (!oc) {
-        ctx.font = font(px); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.lineWidth = Math.max(1.5, px * .018); ctx.strokeStyle = C.lime; ctx.strokeText(num(v), w * .5, h * .27);
-      } else {
-        const ow = Math.round(w * dpr), ohp = Math.round(oh * dpr);
-        if (o.width !== ow || o.height !== ohp) { o.width = ow; o.height = ohp; }
-        oc.setTransform(1, 0, 0, 1, 0, 0); oc.clearRect(0, 0, ow, ohp); oc.setTransform(dpr, 0, 0, dpr, 0, 0);
-        oc.font = font(px); oc.textAlign = 'center'; oc.textBaseline = 'middle'; oc.lineJoin = 'round';
-        oc.lineWidth = Math.max(3, px * .036); oc.strokeStyle = C.lime; oc.strokeText(num(v), w * .5, oh / 2);
-        oc.globalCompositeOperation = 'destination-out'; oc.fillStyle = '#000'; oc.fillText(num(v), w * .5, oh / 2);
-        oc.globalCompositeOperation = 'source-over';
-        ctx.drawImage(o, 0, h * .27 - oh / 2, w, oh);
-      }
+      const dpr = canvas.width / w, oh = px * 1.4, o = outlineCanvas, oc = o.getContext('2d');
+      o.width = Math.round(w * dpr); o.height = Math.round(oh * dpr);
+      oc.setTransform(dpr, 0, 0, dpr, 0, 0);
+      oc.font = font(px); oc.textAlign = 'center'; oc.textBaseline = 'middle'; oc.lineJoin = 'round';
+      oc.lineWidth = Math.max(3, px * .036); oc.strokeStyle = C.lime; oc.strokeText(num(v), w * .5, oh / 2);
+      oc.globalCompositeOperation = 'destination-out'; oc.fillStyle = '#000'; oc.fillText(num(v), w * .5, oh / 2);
+      oc.globalCompositeOperation = 'source-over';
+      ctx.drawImage(o, 0, h * .27 - oh / 2, w, oh);
       text('kcal', w * .5, h * .27 + px * .68, px * .2, C.soft, 600);
     });
 
@@ -732,14 +707,12 @@
           ctx.font = font(fs, 600); const cw = Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width) + fs * 2, chh = fs * 3.5;
           let bx = x < cx ? x - fs * 1.1 - cw : x + fs * 1.1, byc = y;
           if (bx < 8 || bx + cw > w - 8) { bx = clamp(x - cw / 2, 8, w - 8 - cw); byc = y + (y < cy ? -1 : 1) * (chh / 2 + fs * 1.1); }
-          layer(clamp(a * 2), () => {
-          ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc); ctx.translate(-x, -y);
+          ctx.save(); ctx.globalAlpha *= clamp(a * 2); ctx.translate(x, y); ctx.scale(sc, sc); ctx.translate(-x, -y);
           ctx.fillStyle = C.bg; ctx.strokeStyle = '#262C1E'; ctx.lineWidth = 1; rrect(bx, byc - chh / 2, cw, chh, fs); ctx.fill(); ctx.stroke();
           text(l1, bx + fs, byc - fs * .68, fs, C.lime, 600, 'left');
           text(l2, bx + fs, byc + fs * .72, fs * .92, '#B9C4A9', 500, 'left');
           ctx.fillStyle = C.flesh; ctx.strokeStyle = C.bg; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, fs * .7, 0, 7); ctx.fill(); ctx.stroke();
           ctx.restore();
-          });
         });
       }
     });
@@ -760,13 +733,13 @@
       for (let k = 0; k < 6; k++) {
         const pop = ease(seg(q, .12 + k * .055, .26 + k * .055)) * (1 - ease(seg(q, .72 + (5 - k) * .025, .8 + (5 - k) * .025))); if (!pop) continue;   // out one by one, back into the hub in reverse order
         const a = -Math.PI / 2 + k * Math.PI / 3, x = cx + Math.cos(a) * ex * pop, y = cy + Math.sin(a) * ey * pop;
-        layer(pop, () => {
+        ctx.save(); ctx.globalAlpha *= pop;
         ctx.strokeStyle = 'rgba(199,255,13,.22)'; ctx.lineWidth = 1.5; line([[cx, cy], [x, y]]);
         ctx.fillStyle = '#161A13'; rrect(x - ts / 2, y - ts / 2, ts, ts, ts * .28); ctx.fill();
         ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1; ctx.stroke();
         ctx.save(); ctx.translate(x, y); ICONS[k](ts * .28); ctx.restore();
         text(TILE_LABELS[k], x, y + ts / 2 + fs * 1.1, fs, C.text, 600);
-        });
+        ctx.restore();
       }
     });
 
@@ -789,8 +762,8 @@
       if (ca2 > 0) {
         const label = "+1,080 kcal for this morning's 50 km"; ctx.font = font(fs * 1.1, 600);
         const tw = ctx.measureText(label).width + fs * 2.4, y = ny + npx * .78 + (1 - ca2) * 10;
-        layer(ca2, () => { ctx.fillStyle = ink; rrect(w * .5 - tw / 2, y - fs * 1.2, tw, fs * 2.4, fs * 1.2); ctx.fill();
-        text(label, w * .5, y, fs * 1.1, C.lime, 600); });
+        ctx.save(); ctx.globalAlpha *= ca2; ctx.fillStyle = ink; rrect(w * .5 - tw / 2, y - fs * 1.2, tw, fs * 2.4, fs * 1.2); ctx.fill();
+        text(label, w * .5, y, fs * 1.1, C.lime, 600); ctx.restore();
       }
       const bw = Math.min(w * .84, 600), bx = w * .5 - bw / 2, by = ny + npx * .78 + fs * 3, bh = Math.max(10, fs * 1.1);
       let off = 0;
@@ -804,14 +777,12 @@
     }
 
     // the wheel leads the whole page; the bike is built around it
-    const dim = small ? 1 - .88 * win(p, .432, .512, .02) : 1;   // phone: rider and frame fade back while the season grid is on
-    const ba = draw * dim;
-    layer(wAlpha, () => wheel(ctx, wx, wy, wr * wPop, rot, yaw));          // the leading wheel itself never fades with the bike
-    layer(ba, () => {                                                        // bike + rider appear and leave as one object
-      bike('back', wx, wy, wr, th, rot, 1);
-      layer(wAlpha, () => wheel(ctx, wx, wy, wr * wPop, rot, yaw));
-      bike('front', wx, wy, wr, th, rot, 1);
-    });
+    // the bike is either fully there or not there: no half-transparent build-up. On a phone it steps
+    // out while the season grid is on screen (the grid needs the full width).
+    const bikeOn = draw > .5 && !(small && win(p, .432, .512, .02) > .5);
+    if (bikeOn) bike('back', wx, wy, wr, th, rot, 1);
+    layer(wAlpha, () => wheel(ctx, wx, wy, wr * wPop, rot, yaw));
+    if (bikeOn) bike('front', wx, wy, wr, th, rot, 1);
     layer(win(p, .655, .775, .015), () => text('You', wx, wy + wr + Math.max(11, u * .09) * 1.2, Math.max(11, u * .09), C.text, 600));
   }
 
@@ -859,17 +830,13 @@
 
   /* ---------- Render loop: draws only when the frame changed ---------- */
   let lastLight = -1;
+  let failed = false;
   function tick() {
     requestAnimationFrame(tick);
-    cur += (target - cur) * .16;
+    cur += (target - cur) * .3;                                   // follows the finger closely, just a touch of smoothing
     if (Math.abs(target - cur) < .0002) cur = target;
     if (cur !== drawn) {
-      try { drawFrame(cur); }
-      catch (err) {
-        while (depth > 0) depth--;
-        ctx = canvas.getContext('2d'); ctx.setTransform(canvas.width / W, 0, 0, canvas.width / W, 0, 0);
-        if (!SAFE) { SAFE = true; console.error('Wattermelon: switched to simple drawing', err); try { drawFrame(cur); } catch (e2) {} }
-      }
+      try { drawFrame(cur); } catch (err) { if (!failed) { failed = true; console.error(err); } }
       drawn = cur;
       const l = Math.round(lightAmt * 50) / 50;
       if (l !== lastLight) { lastLight = l; overlay.style.opacity = 1 - l; document.body.classList.toggle('on-light', l > .5); }
@@ -936,7 +903,7 @@
   resize();
   addEventListener('resize', () => { resize(); onScroll(); if (reduced) drawFrame(.03); });
   pbar.style.width = '60%';
-  const fontsReady = (document.fonts && document.fonts.ready) ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 2500))]) : Promise.resolve();
+  const fontsReady = (document.fonts && document.fonts.ready) ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1200))]) : Promise.resolve();
   fontsReady.then(() => {
     pbar.style.width = '100%'; loader.classList.add('done'); setTimeout(() => loader.remove(), 500);
     try { resize(); } catch (e) { console.error(e); }
