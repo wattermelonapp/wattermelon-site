@@ -360,6 +360,7 @@
   <span class="nocookie">This site uses no cookies and no trackers.</span>
 </footer>
 
+<script>setTimeout(() => { const l = document.getElementById('loader'); if (l) l.remove(); }, 6000);</script>
 <script>
 (() => {
   const $ = s => document.querySelector(s);
@@ -384,15 +385,17 @@
   // A half-transparent object is first drawn fully opaque on a spare canvas and then laid on top
   // with the transparency as one picture. Drawing its parts one by one with transparency would let
   // the overlapping shapes (legs over the frame, croissant layers, icons over tiles) show through.
-  const POOL = []; let depth = 0;
+  const POOL = []; let depth = 0, SAFE = false;
   function layer(a, fn) {
     if (a <= .004) return;
     if (a >= .996) { fn(); return; }
+    if (SAFE) { ctx.save(); ctx.globalAlpha *= a; fn(); ctx.restore(); return; }
     const main = ctx, dpr = canvas.width / W;
     let off = POOL[depth];
     if (!off) off = POOL[depth] = document.createElement('canvas');
     if (off.width !== canvas.width || off.height !== canvas.height) { off.width = canvas.width; off.height = canvas.height; }
     const oc = off.getContext('2d');
+    if (!oc) { SAFE = true; ctx.save(); ctx.globalAlpha *= a; fn(); ctx.restore(); return; }
     oc.setTransform(1, 0, 0, 1, 0, 0); oc.clearRect(0, 0, off.width, off.height); oc.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx = oc; depth++;
     try { fn(); } finally { depth--; ctx = main; }
@@ -618,14 +621,20 @@
       const v = 2840 * ease(seg(p, .08, .125)), px = Math.min(u * 1.05, w * .26);
       // outline only: stroke the digits on a spare canvas, then erase their insides, so glyphs built
       // from overlapping strokes (the "4") show no inner lines
-      const dpr = canvas.width / w, oh = px * 1.4, o = outlineCanvas, oc = o.getContext('2d');
-      o.width = Math.round(w * dpr); o.height = Math.round(oh * dpr);
-      oc.setTransform(dpr, 0, 0, dpr, 0, 0);
-      oc.font = font(px); oc.textAlign = 'center'; oc.textBaseline = 'middle'; oc.lineJoin = 'round';
-      oc.lineWidth = Math.max(3, px * .036); oc.strokeStyle = C.lime; oc.strokeText(num(v), w * .5, oh / 2);
-      oc.globalCompositeOperation = 'destination-out'; oc.fillStyle = '#000'; oc.fillText(num(v), w * .5, oh / 2);
-      oc.globalCompositeOperation = 'source-over';
-      ctx.drawImage(o, 0, h * .27 - oh / 2, w, oh);
+      const dpr = canvas.width / w, oh = px * 1.4, o = outlineCanvas, oc = SAFE ? null : o.getContext('2d');
+      if (!oc) {
+        ctx.font = font(px); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.lineWidth = Math.max(1.5, px * .018); ctx.strokeStyle = C.lime; ctx.strokeText(num(v), w * .5, h * .27);
+      } else {
+        const ow = Math.round(w * dpr), ohp = Math.round(oh * dpr);
+        if (o.width !== ow || o.height !== ohp) { o.width = ow; o.height = ohp; }
+        oc.setTransform(1, 0, 0, 1, 0, 0); oc.clearRect(0, 0, ow, ohp); oc.setTransform(dpr, 0, 0, dpr, 0, 0);
+        oc.font = font(px); oc.textAlign = 'center'; oc.textBaseline = 'middle'; oc.lineJoin = 'round';
+        oc.lineWidth = Math.max(3, px * .036); oc.strokeStyle = C.lime; oc.strokeText(num(v), w * .5, oh / 2);
+        oc.globalCompositeOperation = 'destination-out'; oc.fillStyle = '#000'; oc.fillText(num(v), w * .5, oh / 2);
+        oc.globalCompositeOperation = 'source-over';
+        ctx.drawImage(o, 0, h * .27 - oh / 2, w, oh);
+      }
       text('kcal', w * .5, h * .27 + px * .68, px * .2, C.soft, 600);
     });
 
@@ -851,14 +860,20 @@
   /* ---------- Render loop: draws only when the frame changed ---------- */
   let lastLight = -1;
   function tick() {
+    requestAnimationFrame(tick);
     cur += (target - cur) * .16;
     if (Math.abs(target - cur) < .0002) cur = target;
     if (cur !== drawn) {
-      drawFrame(cur); drawn = cur;
+      try { drawFrame(cur); }
+      catch (err) {
+        while (depth > 0) depth--;
+        ctx = canvas.getContext('2d'); ctx.setTransform(canvas.width / W, 0, 0, canvas.width / W, 0, 0);
+        if (!SAFE) { SAFE = true; console.error('Wattermelon: switched to simple drawing', err); try { drawFrame(cur); } catch (e2) {} }
+      }
+      drawn = cur;
       const l = Math.round(lightAmt * 50) / 50;
       if (l !== lastLight) { lastLight = l; overlay.style.opacity = 1 - l; document.body.classList.toggle('on-light', l > .5); }
     }
-    requestAnimationFrame(tick);
   }
 
   /* ---------- Beta request form ----------
@@ -923,8 +938,9 @@
   pbar.style.width = '60%';
   const fontsReady = (document.fonts && document.fonts.ready) ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 2500))]) : Promise.resolve();
   fontsReady.then(() => {
-    resize(); pbar.style.width = '100%'; loader.classList.add('done'); setTimeout(() => loader.remove(), 500);
-    if (reduced) { drawFrame(.03); return; }
+    pbar.style.width = '100%'; loader.classList.add('done'); setTimeout(() => loader.remove(), 500);
+    try { resize(); } catch (e) { console.error(e); }
+    if (reduced) { try { drawFrame(.03); } catch (e) { console.error(e); } return; }
     addEventListener('scroll', onScroll, { passive: true });
     onScroll(); cur = target; tick();
   });
