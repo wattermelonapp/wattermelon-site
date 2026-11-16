@@ -129,7 +129,7 @@
   .end-links a:hover { color: var(--lime); }
   .end-links .age { border: 1px solid rgba(255,255,255,.25); border-radius: 6px; padding: 0 6px; color: var(--soft); font-weight: 800; font-size: 12px; }
   .end-links .nocookie { flex-basis: 100%; text-align: center; font-size: 12px; }
-  body:not(.reduced) footer.site { display: none; }            /* the animated page shows the links in its last screen */
+  body:not(.reduced) footer.site { display: none; }
   body.reduced .end-links { display: none; }
   footer.site { padding: 40px clamp(16px, 4vw, 40px) 48px; border-top: 1px solid rgba(255,255,255,.08); display: flex; flex-wrap: wrap; gap: 14px 28px; justify-content: center; font-size: 14px; color: var(--mute); font-weight: 500; }
   footer.site a { text-decoration: none; color: var(--soft); }
@@ -474,7 +474,7 @@
   // part: 'back' = far leg + front wheel, 'front' = frame + rider. draw 0..1 builds the bike around the wheel.
   function bike(part, x, y, r, th, rot, draw) {
     if (draw <= .004) return;
-    const fd = clamp(draw / .6), rd = clamp((draw - .4) / .6), wd = clamp((draw - .3) / .4), a = rot * .6;
+    const fd = 1, rd = 1, wd = 1, a = rot * .6;                  // whole bike; the caller fades it
     ctx.save(); ctx.translate(x, y); ctx.rotate(th); ctx.scale(r / 56, r / 56); ctx.translate(-105, -190);
     if (part === 'back') {
       if (rd > 0) {
@@ -556,7 +556,6 @@
     ctx.clearRect(0, 0, w, h); ctx.fillStyle = C.bg; ctx.fillRect(0, 0, w, h);
 
     // wheel path: [p, x, y, r, easing of the segment that starts here]
-    // the big wheel must sit between the header and the chapter text (on a phone the final form is tall)
     const fit = (y0, r0, bottom) => { const top = HEAD_H + 6, r = Math.max(24, Math.min(r0, (bottom - top) / 2)); return [clamp(y0, top + r, Math.max(top + r, bottom - r)), r]; };
     const [hy0, hr0] = fit(hero[1], u, textTop[0]), [hy1, hr1] = fit(hero[1], u, textTop[1]);
     const K = [
@@ -575,10 +574,12 @@
       const tb = ease(seg(q, 0, .14)) * (1 - ease(seg(q, .88, 1)));
       wx = lerp(wx, w * .5, tb); wy = lerp(wy, h * .31, tb); wr = lerp(wr, u * .24, tb);
     }
-    const rot = wx / rr;
+    const rideT = rideEase(seg(p, .19, .335));                 // 0..1 over the 06:40 ride, same curve as the bike computer
+    const rot = wx / rr + rideT * 60;                          // wheels and pedals keep turning with the kilometres
     const yaw = Math.max(.55 * (1 - ease(seg(p, .01, .075))), .5 * ease(seg(p, .925, .975)));
-    const wAlpha = p < .6 ? 1 - seg(p, .52, .535) : seg(p, .64, .65);
-    const wPop = p < .6 ? 1 : backOut(seg(p, .64, .665));
+    const room = clamp((textTop[1] - HEAD_H - 70) / 40);          // room for the wheel above the last screen's text
+    const wAlpha = (p < .6 ? 1 - seg(p, .52, .535) : seg(p, .64, .65)) * (1 - (1 - room) * seg(p, .9, .93));
+    const wPop = p < .6 ? 1 : .6 + .4 * backOut(seg(p, .64, .665));
     const draw = p < .6 ? seg(p, .165, .19) * (1 - seg(p, .515, .53)) : seg(p, .812, .828) * (1 - seg(p, .875, .888));
     const th = p < .7 ? 0 : -ang * ease(seg(p, .785, .812)) * (1 - ease(seg(p, .888, .93)));
 
@@ -592,7 +593,7 @@
     // flat road
     layer(win(p, .08, .535, .02), () => {
       ctx.strokeStyle = '#3A4330'; ctx.lineWidth = 2; line([[0, roadY], [w, roadY]]);
-      ctx.strokeStyle = 'rgba(185,196,169,.3)'; ctx.lineWidth = 4; ctx.setLineDash([26, 44]); ctx.lineDashOffset = wx * 1.6;
+      ctx.strokeStyle = 'rgba(185,196,169,.3)'; ctx.lineWidth = 4; ctx.setLineDash([26, 44]); ctx.lineDashOffset = wx * 1.6 + rideT * w * 5;   // road streams past while riding
       line([[0, roadY + 9], [w, roadY + 9]]); ctx.setLineDash([]);
     });
 
@@ -613,7 +614,6 @@
     });
 
     // 03: 06:40, the ride - elevation and ride computer
-    const rideT = rideEase(seg(p, .19, .335));
     layer(win(p, .162, .345, .012), () => {
       const pts = []; const end = lerp(0, 1, rideT);
       for (let k = 0; k <= 80; k++) pts.push([w * k / 80, roadY - h * .05 - h * .06 * (.5 + .5 * Math.sin(k / 9)) - h * .025 * Math.sin(k / 3.3 + 1)]);
@@ -631,7 +631,7 @@
       ];
       if (rideT >= 1) cells[0][1] = '175', cells[1][1] = '29.0';
       if (small) cells = cells.slice(2);
-      const gap = small ? w * .3 : Math.min(w * .17, 200), vy = h * .14, vpx = Math.min(u * .32, w * .085), lpx = Math.max(10, vpx * .26);
+      const vpx = Math.min(u * .32, w * .085), gap = small ? w * .3 : Math.min(w * .17, 200), vy = Math.max(h * .14, HEAD_H + vpx * .85 + 8), lpx = Math.max(10, vpx * .26);
       cells.forEach((d, k) => {
         const x = w * .5 + (k - (cells.length - 1) / 2) * gap, last = k === cells.length - 1;
         text(d[0].toUpperCase(), x, vy - vpx * .85, lpx, C.soft, 600);
@@ -664,14 +664,12 @@
 
     // 05: one season, 107 croissants
     layer(win(p, .432, .512), () => {
-      const cols = small ? 15 : 27, rows = Math.ceil(107 / cols), fs = Math.max(12, u * .1);
-      // phone: the rider takes the full width, so the grid stays above his helmet;
-      // wide screen: the grid stays to the left of the bike
-      const left = small ? w * .05 : mg, right = small ? w * .95 : xPark - rr - 24;
-      const top = HEAD_H + fs * 2.6, bottom = small ? ry - rr - 8 : roadY - 30;   // phone: the rider steps back (dimmed), the grid stops above the wheel
-      const cell = Math.min((right - left) / cols, u * .26, (bottom - top) / rows);
-      const cxm = (left + right) / 2, cy = top + rows * cell / 2, shown = Math.round(107 * seg(p, .438, .48));
-      text('35 rides  ·  1,161 km  ·  28,929 kcal', cxm, top - fs * 1.2, fs, C.soft, 600);
+      const fs = Math.max(12, u * .1), top = HEAD_H + fs * 2.6, bottom = roadY - 14;
+      const left = mg, right = xPark - rr - 14, gw = right - left, gh = bottom - top;
+      let cols = 6, cell = 0;                                     // pick the column count that gives the biggest croissants
+      for (let c = 6; c <= 30; c++) { const k = Math.min(gw / c, gh / Math.ceil(107 / c), u * .26); if (k > cell) { cell = k; cols = c; } }
+      const rows = Math.ceil(107 / cols), cxm = (left + right) / 2, cy = top + rows * cell / 2, shown = Math.round(107 * seg(p, .438, .48));
+      text('35 rides  ·  1,161 km  ·  28,929 kcal', small ? w * .5 : cxm, top - fs * 1.2, fs, C.soft, 600);
       for (let k = 0; k < shown; k++) {
         const row = Math.floor(k / cols), inRow = row === rows - 1 ? 107 - row * cols : cols, col = k - row * cols;
         croissant(cxm + (col - (inRow - 1) / 2) * cell, cy + (row - (rows - 1) / 2) * cell, cell * .84);
@@ -776,10 +774,10 @@
     }
 
     // the wheel leads the whole page; the bike is built around it
-    const dim = small ? 1 - .88 * win(p, .432, .512, .02) : 1;   // phone: rider and frame fade back while the season grid is on
-    layer(dim, () => bike('back', wx, wy, wr, th, rot, draw));
+    const ba = ease(draw);
+    layer(ba, () => bike('back', wx, wy, wr, th, rot, 1));
     layer(wAlpha, () => wheel(ctx, wx, wy, wr * wPop, rot, yaw));
-    layer(dim, () => bike('front', wx, wy, wr, th, rot, draw));
+    layer(ba, () => bike('front', wx, wy, wr, th, rot, 1));
     layer(win(p, .655, .775, .015), () => text('You', wx, wy + wr + Math.max(11, u * .09) * 1.2, Math.max(11, u * .09), C.text, 600));
   }
 
@@ -791,7 +789,7 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const st = scene.getBoundingClientRect().top, chs = document.querySelectorAll('.chapter');
     HEAD_H = Math.max(56, document.querySelector('header.top').getBoundingClientRect().bottom - st);
-    textTop = [chs[0], chs[chs.length - 1]].map(el => el.getBoundingClientRect().top - st - 18 - 16);   // 18 = hidden-state offset, 16 = gap
+    textTop = [chs[0], chs[chs.length - 1]].map(el => el.getBoundingClientRect().top - st - 18 - 16);
     drawn = -1;
   }
 
@@ -900,7 +898,8 @@
   pbar.style.width = '60%';
   const fontsReady = (document.fonts && document.fonts.ready) ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 2500))]) : Promise.resolve();
   fontsReady.then(() => {
-    resize(); pbar.style.width = '100%'; loader.classList.add('done'); setTimeout(() => loader.remove(), 500);
+    pbar.style.width = '100%'; loader.classList.add('done'); setTimeout(() => loader.remove(), 500);
+    resize();
     if (reduced) { drawFrame(.03); return; }
     addEventListener('scroll', onScroll, { passive: true });
     onScroll(); cur = target; tick();
