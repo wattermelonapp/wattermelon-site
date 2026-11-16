@@ -124,6 +124,13 @@
   .beta-done .test-note[hidden] { display: none; }
   .fine { margin-top: 14px !important; font-size: 13px !important; color: var(--mute) !important; }
 
+  .end-links { margin: 26px auto 0; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08); display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 16px; font-size: 13px; color: var(--mute); font-weight: 500; }
+  .end-links a { color: var(--soft); text-decoration: none; }
+  .end-links a:hover { color: var(--lime); }
+  .end-links .age { border: 1px solid rgba(255,255,255,.25); border-radius: 6px; padding: 0 6px; color: var(--soft); font-weight: 800; font-size: 12px; }
+  .end-links .nocookie { flex-basis: 100%; text-align: center; font-size: 12px; }
+  body:not(.reduced) footer.site { display: none; }            /* the animated page shows the links in its last screen */
+  body.reduced .end-links { display: none; }
   footer.site { padding: 40px clamp(16px, 4vw, 40px) 48px; border-top: 1px solid rgba(255,255,255,.08); display: flex; flex-wrap: wrap; gap: 14px 28px; justify-content: center; font-size: 14px; color: var(--mute); font-weight: 500; }
   footer.site a { text-decoration: none; color: var(--soft); }
   footer.site a:hover { color: var(--lime); }
@@ -333,6 +340,10 @@
             <strong>You're on the list.</strong>
             <span id="beta-done-text">Check your inbox for a confirmation. We'll email your TestFlight invite when your spot opens.</span>
           </div>
+          <nav class="end-links" aria-label="Site links">
+            <span>© 2026 Wattermelon</span><span class="age" title="For adults only">18+</span><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="mailto:hello@wattermelon.com">hello@wattermelon.com</a><a href="https://www.instagram.com/wattermelon.app/" target="_blank" rel="noopener">Instagram</a>
+            <span class="nocookie">No cookies, no trackers.</span>
+          </nav>
         </div>
       </div>
     </div>
@@ -352,7 +363,8 @@
 <script>
 (() => {
   const $ = s => document.querySelector(s);
-  const scene = $('.scene'), canvas = $('#seq'), ctx = canvas.getContext('2d'), overlay = $('.overlay-gradient');
+  let ctx = document.querySelector('#seq').getContext('2d');
+  const scene = $('.scene'), canvas = $('#seq'), overlay = $('.overlay-gradient');
   const C = { bg: '#0B0D0A', lime: '#C7FF0D', flesh: '#FF4D5E', rind: '#E9F5D6', text: '#F4F7EE', soft: '#9BA391', light: '#EEF3E0' };
   let W = 0, H = 0, target = 0, cur = 0, drawn = -1;
 
@@ -369,7 +381,23 @@
   const font = (px, wt = 800) => `${wt} ${px}px "Inter Tight",system-ui,-apple-system,"Segoe UI",sans-serif`;
   const num = n => Math.round(n).toLocaleString('en-US');
 
-  function layer(a, fn) { if (a <= .004) return; ctx.save(); ctx.globalAlpha *= a; fn(); ctx.restore(); }
+  // A half-transparent object is first drawn fully opaque on a spare canvas and then laid on top
+  // with the transparency as one picture. Drawing its parts one by one with transparency would let
+  // the overlapping shapes (legs over the frame, croissant layers, icons over tiles) show through.
+  const POOL = []; let depth = 0;
+  function layer(a, fn) {
+    if (a <= .004) return;
+    if (a >= .996) { fn(); return; }
+    const main = ctx, dpr = canvas.width / W;
+    let off = POOL[depth];
+    if (!off) off = POOL[depth] = document.createElement('canvas');
+    if (off.width !== canvas.width || off.height !== canvas.height) { off.width = canvas.width; off.height = canvas.height; }
+    const oc = off.getContext('2d');
+    oc.setTransform(1, 0, 0, 1, 0, 0); oc.clearRect(0, 0, off.width, off.height); oc.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx = oc; depth++;
+    try { fn(); } finally { depth--; ctx = main; }
+    main.save(); main.setTransform(1, 0, 0, 1, 0, 0); main.globalAlpha *= a; main.drawImage(off, 0, 0); main.restore();
+  }
   function text(s, x, y, px, color, wt = 800, align = 'center') {
     ctx.font = font(px, wt); ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.fillText(s, x, y);
   }
@@ -463,7 +491,7 @@
   // part: 'back' = far leg + front wheel, 'front' = frame + rider. draw 0..1 builds the bike around the wheel.
   function bike(part, x, y, r, th, rot, draw) {
     if (draw <= .004) return;
-    const fd = clamp(draw / .6), rd = clamp((draw - .4) / .6), wd = clamp((draw - .3) / .4), a = rot * .6;
+    const fd = 1, rd = 1, wd = 1, a = rot * .6;                  // the whole bike at once; the caller fades it as one picture
     ctx.save(); ctx.translate(x, y); ctx.rotate(th); ctx.scale(r / 56, r / 56); ctx.translate(-105, -190);
     if (part === 'back') {
       if (rd > 0) {
@@ -567,7 +595,7 @@
     const rot = wx / rr;
     const yaw = Math.max(.55 * (1 - ease(seg(p, .01, .075))), .5 * ease(seg(p, .925, .975)));
     const wAlpha = p < .6 ? 1 - seg(p, .52, .535) : seg(p, .64, .65);
-    const wPop = p < .6 ? 1 : backOut(seg(p, .64, .665));
+    const wPop = p < .6 ? 1 : .6 + .4 * backOut(seg(p, .64, .665));
     const draw = p < .6 ? seg(p, .165, .19) * (1 - seg(p, .515, .53)) : seg(p, .812, .828) * (1 - seg(p, .875, .888));
     const th = p < .7 ? 0 : -ang * ease(seg(p, .785, .812)) * (1 - ease(seg(p, .888, .93)));
 
@@ -690,17 +718,19 @@
         layer(seg(p, .668, .678), () => text('20 km', cx, cy - R0 - fs, fs * 1.1, C.lime, 600));
         PINS.forEach((o, k) => {
           const at = (((o.a + 90) % 360) + 360) % 360 / 360, a = seg(sw, at, at + .09); if (a <= 0) return;   // a ride shows up only once the search line has passed over it
-          const r = o.a * Math.PI / 180, x = cx + Math.cos(r) * R0 * o.d / 20, y = cy + Math.sin(r) * R0 * o.d / 20, sc = backOut(a);
+          const r = o.a * Math.PI / 180, x = cx + Math.cos(r) * R0 * o.d / 20, y = cy + Math.sin(r) * R0 * o.d / 20, sc = .7 + .3 * backOut(a);
           const l1 = o.p + ' ' + o.s, l2 = o.d + ' km away · ' + o.t;
           ctx.font = font(fs, 600); const cw = Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width) + fs * 2, chh = fs * 3.5;
           let bx = x < cx ? x - fs * 1.1 - cw : x + fs * 1.1, byc = y;
           if (bx < 8 || bx + cw > w - 8) { bx = clamp(x - cw / 2, 8, w - 8 - cw); byc = y + (y < cy ? -1 : 1) * (chh / 2 + fs * 1.1); }
-          ctx.save(); ctx.globalAlpha *= clamp(a * 2); ctx.translate(x, y); ctx.scale(sc, sc); ctx.translate(-x, -y);
+          layer(clamp(a * 2), () => {
+          ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc); ctx.translate(-x, -y);
           ctx.fillStyle = C.bg; ctx.strokeStyle = '#262C1E'; ctx.lineWidth = 1; rrect(bx, byc - chh / 2, cw, chh, fs); ctx.fill(); ctx.stroke();
           text(l1, bx + fs, byc - fs * .68, fs, C.lime, 600, 'left');
           text(l2, bx + fs, byc + fs * .72, fs * .92, '#B9C4A9', 500, 'left');
           ctx.fillStyle = C.flesh; ctx.strokeStyle = C.bg; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, fs * .7, 0, 7); ctx.fill(); ctx.stroke();
           ctx.restore();
+          });
         });
       }
     });
@@ -721,13 +751,13 @@
       for (let k = 0; k < 6; k++) {
         const pop = ease(seg(q, .12 + k * .055, .26 + k * .055)) * (1 - ease(seg(q, .72 + (5 - k) * .025, .8 + (5 - k) * .025))); if (!pop) continue;   // out one by one, back into the hub in reverse order
         const a = -Math.PI / 2 + k * Math.PI / 3, x = cx + Math.cos(a) * ex * pop, y = cy + Math.sin(a) * ey * pop;
-        ctx.save(); ctx.globalAlpha *= pop;
+        layer(pop, () => {
         ctx.strokeStyle = 'rgba(199,255,13,.22)'; ctx.lineWidth = 1.5; line([[cx, cy], [x, y]]);
         ctx.fillStyle = '#161A13'; rrect(x - ts / 2, y - ts / 2, ts, ts, ts * .28); ctx.fill();
         ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1; ctx.stroke();
         ctx.save(); ctx.translate(x, y); ICONS[k](ts * .28); ctx.restore();
         text(TILE_LABELS[k], x, y + ts / 2 + fs * 1.1, fs, C.text, 600);
-        ctx.restore();
+        });
       }
     });
 
@@ -750,8 +780,8 @@
       if (ca2 > 0) {
         const label = "+1,080 kcal for this morning's 50 km"; ctx.font = font(fs * 1.1, 600);
         const tw = ctx.measureText(label).width + fs * 2.4, y = ny + npx * .78 + (1 - ca2) * 10;
-        ctx.save(); ctx.globalAlpha *= ca2; ctx.fillStyle = ink; rrect(w * .5 - tw / 2, y - fs * 1.2, tw, fs * 2.4, fs * 1.2); ctx.fill();
-        text(label, w * .5, y, fs * 1.1, C.lime, 600); ctx.restore();
+        layer(ca2, () => { ctx.fillStyle = ink; rrect(w * .5 - tw / 2, y - fs * 1.2, tw, fs * 2.4, fs * 1.2); ctx.fill();
+        text(label, w * .5, y, fs * 1.1, C.lime, 600); });
       }
       const bw = Math.min(w * .84, 600), bx = w * .5 - bw / 2, by = ny + npx * .78 + fs * 3, bh = Math.max(10, fs * 1.1);
       let off = 0;
@@ -766,9 +796,13 @@
 
     // the wheel leads the whole page; the bike is built around it
     const dim = small ? 1 - .88 * win(p, .432, .512, .02) : 1;   // phone: rider and frame fade back while the season grid is on
-    layer(dim, () => bike('back', wx, wy, wr, th, rot, draw));
-    layer(wAlpha, () => wheel(ctx, wx, wy, wr * wPop, rot, yaw));
-    layer(dim, () => bike('front', wx, wy, wr, th, rot, draw));
+    const ba = draw * dim;
+    layer(wAlpha, () => wheel(ctx, wx, wy, wr * wPop, rot, yaw));          // the leading wheel itself never fades with the bike
+    layer(ba, () => {                                                        // bike + rider appear and leave as one object
+      bike('back', wx, wy, wr, th, rot, 1);
+      layer(wAlpha, () => wheel(ctx, wx, wy, wr * wPop, rot, yaw));
+      bike('front', wx, wy, wr, th, rot, 1);
+    });
     layer(win(p, .655, .775, .015), () => text('You', wx, wy + wr + Math.max(11, u * .09) * 1.2, Math.max(11, u * .09), C.text, 600));
   }
 
