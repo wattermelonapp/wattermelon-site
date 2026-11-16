@@ -474,8 +474,10 @@
   // part: 'back' = far leg + front wheel, 'front' = frame + rider. draw 0..1 builds the bike around the wheel.
   function bike(part, x, y, r, th, rot, draw) {
     if (draw <= .004) return;
-    const fd = 1, rd = 1, wd = 1, a = rot * .6;                  // whole bike; the caller fades it
+    const fd = 1, rd = 1, wd = 1, a = rot * .6;                  // always fully opaque
     ctx.save(); ctx.translate(x, y); ctx.rotate(th); ctx.scale(r / 56, r / 56); ctx.translate(-105, -190);
+    // reveal: the bike comes out of the rear wheel from back to front (draw 0..1), no transparency at all
+    if (draw < .999) { ctx.beginPath(); ctx.rect(40, -20, 300 * draw, 290); ctx.clip(); }
     if (part === 'back') {
       if (rd > 0) {
         const F = legAt(a + Math.PI);
@@ -775,9 +777,9 @@
 
     // the wheel leads the whole page; the bike is built around it
     const ba = ease(draw);
-    layer(ba, () => bike('back', wx, wy, wr, th, rot, 1));
+    bike('back', wx, wy, wr, th, rot, ba);
     layer(wAlpha, () => wheel(ctx, wx, wy, wr * wPop, rot, yaw));
-    layer(ba, () => bike('front', wx, wy, wr, th, rot, 1));
+    bike('front', wx, wy, wr, th, rot, ba);
     layer(win(p, .655, .775, .015), () => text('You', wx, wy + wr + Math.max(11, u * .09) * 1.2, Math.max(11, u * .09), C.text, 600));
   }
 
@@ -810,7 +812,8 @@
       ch.el.classList.toggle('visible', vis);
       if (ch.last) document.body.classList.toggle('at-cta', vis);
       if (vis && ch.anim) {
-        const t = Math.round(clamp((target - ch.start) / (ch.end - ch.start) / (ch.anim === 'fuel' ? .76 : .55)) * 200) / 200;   // fuel: meal rows arrive in step with the bar
+        const t = Math.round((ch.anim === 'levers' ? seg(toFilm(target), .828, .875)          // levers: in step with the climb, full at the flag
+          : clamp((target - ch.start) / (ch.end - ch.start) / .76)) * 200) / 200;                // fuel: meal rows arrive in step with the bar
         if (t !== ch.t) {
           ch.t = t; ch.el.style.setProperty('--t', t);
           if (ch.anim === 'levers') {
