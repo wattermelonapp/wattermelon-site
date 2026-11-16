@@ -58,7 +58,7 @@
   }
 
   /* Scroll track + sticky stage */
-  #scrolltrack { position: relative; height: 1585vh; }
+  #scrolltrack { position: relative; height: 1515vh; }
   #stage { position: sticky; top: 0; height: 100vh; height: 100svh; width: 100%; overflow: hidden; }
   .scene { position: absolute; inset: 0; }
   #seq { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
@@ -257,19 +257,14 @@
           <p>Wattermelon reads the ride from Garmin, Apple Health, intervals.icu or a FIT file.</p>
         </div>
 
-        <div class="chapter" data-start="0.34" data-end="0.42">
+        <div class="chapter" data-start="0.34" data-end="0.495">
           <span class="eyebrow"><span class="time">08:45</span> · After the ride</span>
           <h2>Today you burned <em>4 croissants.</em></h2>
           <p>Kilocalories mean little after a morning in the saddle. Wattermelon shows every ride in food you know: 1,080 kcal ride, 270 kcal per croissant.</p>
         </div>
 
-        <div class="chapter" data-start="0.435" data-end="0.50">
-          <span class="eyebrow">Real numbers</span>
-          <h2>One season. <em>107 croissants.</em></h2>
-          <p>A real 2026 season counted in the app: 35 rides, 1,161 km, 28,929 kcal.</p>
-        </div>
 
-        <div class="chapter light" data-start="0.54" data-end="0.62" data-anim="fuel">
+        <div class="chapter light" data-start="0.532" data-end="0.623" data-anim="fuel">
           <span class="eyebrow">Today · Fuel tab</span>
           <h2>Your day refuels around your <em>ride.</em></h2>
           <ul class="meals">
@@ -279,7 +274,7 @@
           </ul>
         </div>
 
-        <div class="chapter" data-start="0.665" data-end="0.78">
+        <div class="chapter" data-start="0.645" data-end="0.78">
           <span class="eyebrow"><span class="time">Saturday</span> · Ride together</span>
           <h2>Find a wheel within <em>20 km.</em></h2>
           <p>Post a ride, pick a pace and agree on a meeting point. <strong>Calm</strong> - up to 25 km/h. <strong>Advanced</strong> - around 28. <strong>Sporty</strong> - 30+. Only your area is shown - never your exact location. 18+.</p>
@@ -518,7 +513,7 @@
   // sized by how much there is to read and watch, so no scene flashes by and none drags.
   const FILM = [0, .07, .16, .335, .43, .515, .655, .72, .78, .812, .888, .91];
   //             hero problem ride croissants season fuel | map: pins appear, hold | roll to the slope, the climb itself, exit | tiles | finale
-  const BUDGET = [70, 110, 180, 120, 100, 190, 80, 35, 40, 230, 20], TILES = 190, FINALE = 120;
+  const BUDGET = [70, 110, 180, 120, 30, 190, 80, 35, 40, 230, 20], TILES = 190, FINALE = 120;   // 5th: hand-over croissants -> Fuel (season scene removed)
   const TOTAL = BUDGET.reduce((x, y) => x + y, 0) + TILES + FINALE;
   const NP = [0]; BUDGET.forEach(v => NP.push(NP[NP.length - 1] + v / TOTAL));
   const NB = NP[NP.length - 1], NC = NB + TILES / TOTAL;
@@ -544,7 +539,7 @@
   const TILE_LABELS = ['Ride in food', 'Fuel', 'Training plans', 'Together', 'Share card', 'W/kg goal'];
 
   const outlineCanvas = document.createElement('canvas');
-  let lightAmt = 0, HEAD_H = 64, textTop = [1e4, 1e4];
+  let lightAmt = 0, HEAD_H = 64, textTop = [1e4, 1e4, 1e4, 1e4];
   function drawFrame(n) {
     const p = toFilm(n), q = seg(n, NB, NC);
     const w = W, h = H, u = Math.min(w * .3, h * .22), rr = u * .3, roadY = h * .5, small = w < 700;
@@ -558,6 +553,12 @@
     // wheel path: [p, x, y, r, easing of the segment that starts here]
     const fit = (y0, r0, bottom) => { const top = HEAD_H + 6, r = Math.max(24, Math.min(r0, (bottom - top) / 2)); return [clamp(y0, top + r, Math.max(top + r, bottom - r)), r]; };
     const [hy0, hr0] = fit(hero[1], u, textTop[0]), [hy1, hr1] = fit(hero[1], u, textTop[1]);
+    const ringTs = u * .42, ringFs = Math.max(11, u * .085);
+    const ring = (() => {
+      const top = HEAD_H + ringFs * 2.2 + ringTs / 2, bottom = textTop[2] - ringFs * 2.4 - ringTs / 2;
+      const ey = Math.max(ringTs * .9, Math.min(h * .17, (bottom - top) / 2));
+      return { ey, cy: bottom > top ? (top + bottom) / 2 : h * .31 };
+    })();
     const K = [
       [0, hero[0], hy0, hr0], [.06, hero[0], hy0, hr0],
       [.12, xStart, ry, rr], [.19, xStart, ry, rr, 'r'],
@@ -572,13 +573,13 @@
     if (i === 1 || i === 9) wy -= Math.sin(Math.PI * t) * h * .05;              // rolls in an arc
     if (q > 0 && q < 1) {                                                       // the wheel becomes the hub of six tiles
       const tb = ease(seg(q, 0, .14)) * (1 - ease(seg(q, .88, 1)));
-      wx = lerp(wx, w * .5, tb); wy = lerp(wy, h * .31, tb); wr = lerp(wr, u * .24, tb);
+      wx = lerp(wx, w * .5, tb); wy = lerp(wy, ring.cy, tb); wr = lerp(wr, u * .24, tb);
     }
     const rideT = rideEase(seg(p, .19, .335));                 // 0..1 over the 06:40 ride, same curve as the bike computer
     const rot = wx / rr + rideT * 60;                          // wheels and pedals keep turning with the kilometres
     const yaw = Math.max(.55 * (1 - ease(seg(p, .01, .075))), .5 * ease(seg(p, .925, .975)));
     const room = clamp((textTop[1] - HEAD_H - 70) / 40);          // room for the wheel above the last screen's text
-    const wAlpha = (p < .6 ? 1 - seg(p, .52, .535) : seg(p, .64, .65)) * (1 - (1 - room) * seg(p, .9, .93));
+    const wAlpha = (p < .6 ? 1 - seg(p, .515, .528) : seg(p, .64, .65)) * (1 - (1 - room) * seg(p, .9, .93));
     const wPop = p < .6 ? 1 : .6 + .4 * backOut(seg(p, .64, .665));
     const draw = p < .6 ? seg(p, .165, .19) * (1 - seg(p, .515, .53)) : seg(p, .812, .828) * (1 - seg(p, .875, .888));
     const th = p < .7 ? 0 : -ang * ease(seg(p, .785, .812)) * (1 - ease(seg(p, .888, .93)));
@@ -662,20 +663,6 @@
       }
     });
 
-    // 05: one season, 107 croissants
-    layer(win(p, .432, .512), () => {
-      const fs = Math.max(12, u * .1), top = HEAD_H + fs * 2.6, bottom = roadY - 14;
-      const left = mg, right = xPark - rr - 14, gw = right - left, gh = bottom - top;
-      let cols = 6, cell = 0;                                     // pick the column count that gives the biggest croissants
-      for (let c = 6; c <= 30; c++) { const k = Math.min(gw / c, gh / Math.ceil(107 / c), u * .26); if (k > cell) { cell = k; cols = c; } }
-      const rows = Math.ceil(107 / cols), cxm = (left + right) / 2, cy = top + rows * cell / 2, shown = Math.round(107 * seg(p, .438, .48));
-      text('35 rides  ·  1,161 km  ·  28,929 kcal', small ? w * .5 : cxm, top - fs * 1.2, fs, C.soft, 600);
-      for (let k = 0; k < shown; k++) {
-        const row = Math.floor(k / cols), inRow = row === rows - 1 ? 107 - row * cols : cols, col = k - row * cols;
-        croissant(cxm + (col - (inRow - 1) / 2) * cell, cy + (row - (rows - 1) / 2) * cell, cell * .84);
-      }
-    });
-
     // 07: Saturday - riders within 20 km
     layer(win(p, .6, .795, .02), () => {
       const cx = mapC[0], cy = mapC[1], R0 = Math.min(w * .42, h * .225), R = R0 * ease(seg(p, .655, .675)), mh = h * .64;
@@ -726,7 +713,7 @@
 
     // what's inside: six tiles around the hub
     if (q > 0 && q < 1) layer(1, () => {
-      const cx = w * .5, cy = h * .31, ex = Math.min(w * .36, u * 2.1), ey = h * .17, ts = u * .42, fs = Math.max(11, u * .085);
+      const cx = w * .5, cy = ring.cy, ex = Math.min(w * .36, u * 2.1), ey = ring.ey, ts = u * .42, fs = Math.max(11, u * .085);
       for (let k = 0; k < 6; k++) {
         const pop = ease(seg(q, .12 + k * .055, .26 + k * .055)) * (1 - ease(seg(q, .72 + (5 - k) * .025, .8 + (5 - k) * .025))); if (!pop) continue;   // out one by one, back into the hub in reverse order
         const a = -Math.PI / 2 + k * Math.PI / 3, x = cx + Math.cos(a) * ex * pop, y = cy + Math.sin(a) * ey * pop;
@@ -735,19 +722,20 @@
         ctx.fillStyle = '#161A13'; rrect(x - ts / 2, y - ts / 2, ts, ts, ts * .28); ctx.fill();
         ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1; ctx.stroke();
         ctx.save(); ctx.translate(x, y); ICONS[k](ts * .28); ctx.restore();
-        text(TILE_LABELS[k], x, y + ts / 2 + fs * 1.1, fs, C.text, 600);
+        text(TILE_LABELS[k], x, k === 0 ? y - ts / 2 - fs * 1.1 : y + ts / 2 + fs * 1.1, fs, C.text, 600);   // top tile: label above
         ctx.restore();
       }
     });
 
     // 06: Fuel - a light screen opens from the rear wheel and closes into your mark on the map
-    const lr = p < .6 ? easeOut(seg(p, .515, .545)) : 1 - ease(seg(p, .625, .652));
+    const lr = p < .6 ? easeOut(seg(p, .515, .53)) : 1 - ease(seg(p, .625, .652));
     lightAmt = lr;
     if (lr > .001) {
       const lc = p < .6 ? [xPark, ry] : mapC, hyp = Math.hypot(Math.max(lc[0], w - lc[0]), Math.max(lc[1], h - lc[1]));
       ctx.save(); ctx.beginPath(); ctx.arc(lc[0], lc[1], lr * hyp, 0, 7); ctx.clip();
       ctx.fillStyle = C.light; ctx.fillRect(0, 0, w, h);
-      const ink = '#0B0D0A', fs = Math.max(11, u * .09), npx = Math.min(u * .78, w * .2), ny = h * .2;
+      const ink = '#0B0D0A', fs = Math.max(11, u * .09), npx = Math.min(u * .78, w * .2, Math.max(26, (textTop[3] - HEAD_H - 4 * fs - 10 - Math.max(10, fs * 1.1)) / 1.56)), ny = Math.max(h * .2, HEAD_H + npx * .78 + fs + 10);   // number, note and bar stay above the text
+      const noteGap = Math.max(npx * .78, npx * .45 + fs * 1.6);   // the note never touches a small number
       text("TODAY'S NORM", w * .5, ny - npx * .78, fs, '#5A6350', 600);
       // the norm counts up exactly as the meal bar below fills: breakfast, lunch, dinner
       const meals = [1040, 1280, 1060], fill = meals.map((m, k) => ease(seg(p, .55 + k * .017, .567 + k * .017)));
@@ -758,11 +746,11 @@
       const ca2 = ease(seg(p, .546, .556));
       if (ca2 > 0) {
         const label = "+1,080 kcal for this morning's 50 km"; ctx.font = font(fs * 1.1, 600);
-        const tw = ctx.measureText(label).width + fs * 2.4, y = ny + npx * .78 + (1 - ca2) * 10;
+        const tw = ctx.measureText(label).width + fs * 2.4, y = ny + noteGap + (1 - ca2) * 10;
         ctx.save(); ctx.globalAlpha *= ca2; ctx.fillStyle = ink; rrect(w * .5 - tw / 2, y - fs * 1.2, tw, fs * 2.4, fs * 1.2); ctx.fill();
         text(label, w * .5, y, fs * 1.1, C.lime, 600); ctx.restore();
       }
-      const bw = Math.min(w * .84, 600), bx = w * .5 - bw / 2, by = ny + npx * .78 + fs * 3, bh = Math.max(10, fs * 1.1);
+      const bw = Math.min(w * .84, 600), bx = w * .5 - bw / 2, by = ny + noteGap + fs * 3, bh = Math.max(10, fs * 1.1);
       let off = 0;
       meals.forEach((m, k) => {
         const sw = bw * m / 3380 - 4, g = fill[k];
@@ -789,7 +777,7 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const st = scene.getBoundingClientRect().top, chs = document.querySelectorAll('.chapter');
     HEAD_H = Math.max(56, document.querySelector('header.top').getBoundingClientRect().bottom - st);
-    textTop = [chs[0], chs[chs.length - 1]].map(el => el.getBoundingClientRect().top - st - 18 - 16);
+    textTop = [chs[0], chs[chs.length - 1], document.querySelector('.chapter[data-direct]'), document.querySelector('.chapter.light')].map(el => el.getBoundingClientRect().top - st - 18 - 16);
     drawn = -1;
   }
 
