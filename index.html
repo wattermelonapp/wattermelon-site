@@ -64,7 +64,7 @@
   #seq { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   .overlay-gradient {
     position: absolute; inset: 0; pointer-events: none;
-    background: linear-gradient(180deg, rgba(11,13,10,0) 46%, rgba(11,13,10,.86) 68%, rgba(11,13,10,.97) 100%);
+    background: linear-gradient(180deg, rgba(11,13,10,0) 62%, rgba(11,13,10,.86) 78%, rgba(11,13,10,.97) 100%);
   }
   .chapters { position: absolute; inset: 0; pointer-events: none; }
   .chapter {
@@ -539,14 +539,18 @@
   const TILE_LABELS = ['Ride in food', 'Fuel', 'Training plans', 'Together', 'Share card', 'W/kg goal'];
 
   const outlineCanvas = document.createElement('canvas');
-  let lightAmt = 0, HEAD_H = 64, textTop = [1e4, 1e4, 1e4, 1e4];
+  let lightAmt = 0, HEAD_H = 64, textTop = [1e4, 1e4, 1e4, 1e4, 1e4, 1e4];
   function drawFrame(n) {
     const p = toFilm(n), q = seg(n, NB, NC);
     const w = W, h = H, u = Math.min(w * .3, h * .22), rr = u * .3, roadY = h * .5, small = w < 700;
     const mg = Math.max(16, w * .04), xStart = w * .12, xPark = w - mg - 4.1 * rr, xEnd = xPark - 1.6 * rr, ry = roadY - rr;
-    const ang = (small ? 10 : 12) * Math.PI / 180, L = Math.min(w * .8, h * 1.2), ca = Math.cos(ang), sa = Math.sin(ang);
-    const S = [(w - L * ca) / 2, h * .5], onSlope = d => [S[0] + ca * d - sa * rr, S[1] - sa * d - ca * rr];
-    const c0 = onSlope(L * .06), c1 = onSlope(L * .42), mapC = [w * .5, h * .33], hero = [w * .56, h * .34];
+    const ang = (small ? 10 : 12) * Math.PI / 180, ca = Math.cos(ang), sa = Math.sin(ang);
+    const Sy = Math.min(h * .5, textTop[4] - 10);                      // the slope starts above the climb text
+    const L = Math.min(w * .8, h * 1.2, Math.max(w * .35, Math.min((Sy - HEAD_H - Math.max(12, u * .1) * 4.5) / sa, (Sy - HEAD_H * .5 - 4.4 * rr) / (.42 * sa))));   // flag and helmet stay on screen
+    const S = [(w - L * ca) / 2, Sy], onSlope = d => [S[0] + ca * d - sa * rr, S[1] - sa * d - ca * rr];
+    const mapFs = Math.max(10, Math.min(13, u * .085)), mapTop = HEAD_H + mapFs * 2.4, mapBot = textTop[5] - 6;
+    const mapR0 = Math.max(60, Math.min(w * .42, h * .225, (mapBot - mapTop) / 2));
+    const c0 = onSlope(L * .06), c1 = onSlope(L * .42), mapC = [w * .5, clamp(h * .33, mapTop + mapR0, Math.max(mapTop + mapR0, mapBot - mapR0))], hero = [w * .56, h * .34];
 
     ctx.clearRect(0, 0, w, h); ctx.fillStyle = C.bg; ctx.fillRect(0, 0, w, h);
 
@@ -665,7 +669,7 @@
 
     // 07: Saturday - riders within 20 km
     layer(win(p, .6, .795, .02), () => {
-      const cx = mapC[0], cy = mapC[1], R0 = Math.min(w * .42, h * .225), R = R0 * ease(seg(p, .655, .675)), mh = h * .64;
+      const cx = mapC[0], cy = mapC[1], R0 = mapR0, R = R0 * ease(seg(p, .655, .675)), mh = h * .64;
       ctx.lineCap = 'round';
       STREETS.forEach(s => {
         ctx.strokeStyle = '#1E2418'; ctx.lineWidth = s[5]; ctx.beginPath();
@@ -715,7 +719,7 @@
     if (q > 0 && q < 1) layer(1, () => {
       const cx = w * .5, cy = ring.cy, ex = Math.min(w * .36, u * 2.1), ey = ring.ey, ts = u * .42, fs = Math.max(11, u * .085);
       for (let k = 0; k < 6; k++) {
-        const pop = ease(seg(q, .12 + k * .055, .26 + k * .055)) * (1 - ease(seg(q, .72 + (5 - k) * .025, .8 + (5 - k) * .025))); if (!pop) continue;   // out one by one, back into the hub in reverse order
+        const pop = ease(seg(q, .1 + k * .03, .2 + k * .03)) * (1 - ease(seg(q, .86, .97))); if (!pop) continue;   // all six are fully visible from q .35 to .86 - the whole time the text is read
         const a = -Math.PI / 2 + k * Math.PI / 3, x = cx + Math.cos(a) * ex * pop, y = cy + Math.sin(a) * ey * pop;
         ctx.save(); ctx.globalAlpha *= pop;
         ctx.strokeStyle = 'rgba(199,255,13,.22)'; ctx.lineWidth = 1.5; line([[cx, cy], [x, y]]);
@@ -777,7 +781,7 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const st = scene.getBoundingClientRect().top, chs = document.querySelectorAll('.chapter');
     HEAD_H = Math.max(56, document.querySelector('header.top').getBoundingClientRect().bottom - st);
-    textTop = [chs[0], chs[chs.length - 1], document.querySelector('.chapter[data-direct]'), document.querySelector('.chapter.light')].map(el => el.getBoundingClientRect().top - st - 18 - 16);
+    textTop = [chs[0], chs[chs.length - 1], document.querySelector('.chapter[data-direct]'), document.querySelector('.chapter.light'), document.querySelector('.chapter[data-anim=levers]'), chs[5]].map(el => el.getBoundingClientRect().top - st - 18 - 16);
     drawn = -1;
   }
 
