@@ -741,9 +741,9 @@
       const ink = '#0B0D0A', fs = Math.max(11, u * .09), npx = Math.min(u * .78, w * .2, Math.max(26, (textTop[3] - HEAD_H - 4 * fs - 10 - Math.max(10, fs * 1.1)) / 1.56)), ny = Math.max(h * .2, HEAD_H + npx * .78 + fs + 10);   // number, note and bar stay above the text
       const noteGap = Math.max(npx * .78, npx * .45 + fs * 1.6);   // the note never touches a small number
       text("TODAY'S NORM", w * .5, ny - npx * .78, fs, '#5A6350', 600);
-      // the norm counts up exactly as the meal bar below fills: breakfast, lunch, dinner
-      const meals = [1040, 1280, 1060], fill = meals.map((m, k) => ease(seg(p, .55 + k * .017, .567 + k * .017)));
-      const v = 2300 + 1080 * (fill[0] * meals[0] + fill[1] * meals[1] + fill[2] * meals[2]) / 3380;
+      // the norm counts up exactly as the meal bar below fills: three equal blocks, one steady pace (breakfast, lunch, dinner)
+      const prog = seg(p, .55, .601), fill = [0, 1, 2].map(k => clamp(prog * 3 - k));
+      const v = 2300 + 1080 * prog;
       ctx.font = font(npx); const nw = ctx.measureText(num(v)).width; ctx.font = font(npx * .3, 600); const kw = ctx.measureText(' kcal').width;
       text(num(v), w * .5 - (nw + kw) / 2, ny, npx, ink, 800, 'left');
       text(' kcal', w * .5 - (nw + kw) / 2 + nw, ny + npx * .2, npx * .3, '#5A6350', 600, 'left');
@@ -756,10 +756,10 @@
       }
       const bw = Math.min(w * .84, 600), bx = w * .5 - bw / 2, by = ny + noteGap + fs * 3, bh = Math.max(10, fs * 1.1);
       let off = 0;
-      meals.forEach((m, k) => {
-        const sw = bw * m / 3380 - 4, g = fill[k];
+      fill.forEach((g, k) => {
+        const sw = (bw - 8) / 3;
         ctx.fillStyle = 'rgba(11,13,10,.1)'; rrect(bx + off, by, sw, bh, bh / 2); ctx.fill();
-        if (g > .02) { ctx.fillStyle = ['#FF7A86', '#FF4D5E', '#E0263C'][k]; rrect(bx + off, by, Math.max(bh, sw * g), bh, bh / 2); ctx.fill(); }
+        if (g > .005) { ctx.fillStyle = ['#FF7A86', '#FF4D5E', '#E0263C'][k]; rrect(bx + off, by, Math.max(bh, sw * g), bh, bh / 2); ctx.fill(); }
         off += sw + 4;
       });
       ctx.restore();
